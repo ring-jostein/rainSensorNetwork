@@ -1,6 +1,6 @@
-<mxfile host="app.diagrams.net" modified="2021-02-09T13:41:46.435Z" agent="5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36" etag="sIlFOVe9-sPvEDiQ1pAw" version="14.3.0" type="github">
+<mxfile host="app.diagrams.net" modified="2021-02-09T13:53:35.762Z" agent="5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36" etag="gISHAa3zukryaZ05bY8d" version="14.3.0" type="github">
   <diagram id="s1FAd_AgfW52bGK2yp9e" name="Page-1">
-    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="2062" dy="1132" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -11,25 +11,10 @@
           <mxGeometry x="340" y="60" width="120" height="60" as="geometry" />
         </mxCell>
         <mxCell id="KXGbyRWlH0LsL0UsSs6D-2" value="Stop" style="ellipse;whiteSpace=wrap;html=1;" parent="1" vertex="1">
-          <mxGeometry x="340" y="660" width="120" height="60" as="geometry" />
+          <mxGeometry x="340" y="760" width="120" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="KXGbyRWlH0LsL0UsSs6D-15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="KXGbyRWlH0LsL0UsSs6D-6" target="KXGbyRWlH0LsL0UsSs6D-7" edge="1">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="210" y="220" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="KXGbyRWlH0LsL0UsSs6D-6" value="Sleep&lt;br&gt;&lt;i&gt;&lt;font style=&quot;font-size: 10px&quot;&gt;Arduino går i sleep mode for å spare strøm&lt;/font&gt;&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
-          <mxGeometry x="160" y="360" width="120" height="60" as="geometry" />
-        </mxCell>
-        <mxCell id="KXGbyRWlH0LsL0UsSs6D-11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="KXGbyRWlH0LsL0UsSs6D-7" target="KXGbyRWlH0LsL0UsSs6D-9" edge="1">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="400" y="350" />
-              <mxPoint x="400" y="350" />
-            </Array>
-          </mxGeometry>
+        <mxCell id="zzjIF3lNwweGvg3sCjhe-4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="KXGbyRWlH0LsL0UsSs6D-7" target="zzjIF3lNwweGvg3sCjhe-1">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="KXGbyRWlH0LsL0UsSs6D-7" value="Input&lt;br&gt;&lt;i&gt;&lt;font style=&quot;font-size: 10px&quot;&gt;Innhenting av nedbørsmåling&lt;/font&gt;&lt;/i&gt;" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;" parent="1" vertex="1">
           <mxGeometry x="340" y="190" width="120" height="60" as="geometry" />
@@ -37,25 +22,66 @@
         <mxCell id="KXGbyRWlH0LsL0UsSs6D-13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="KXGbyRWlH0LsL0UsSs6D-8" target="KXGbyRWlH0LsL0UsSs6D-2" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="KXGbyRWlH0LsL0UsSs6D-14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" parent="1" source="KXGbyRWlH0LsL0UsSs6D-8" target="KXGbyRWlH0LsL0UsSs6D-6" edge="1">
-          <mxGeometry relative="1" as="geometry" />
+        <mxCell id="zzjIF3lNwweGvg3sCjhe-18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="KXGbyRWlH0LsL0UsSs6D-8" target="zzjIF3lNwweGvg3sCjhe-9">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="170" y="670" as="targetPoint" />
+          </mxGeometry>
         </mxCell>
         <mxCell id="KXGbyRWlH0LsL0UsSs6D-8" value="Output&lt;br&gt;&lt;i&gt;&lt;font style=&quot;font-size: 11px&quot;&gt;Sending av data&lt;/font&gt;&lt;/i&gt;" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;" parent="1" vertex="1">
-          <mxGeometry x="340" y="540" width="120" height="60" as="geometry" />
+          <mxGeometry x="340" y="640" width="120" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="KXGbyRWlH0LsL0UsSs6D-12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="KXGbyRWlH0LsL0UsSs6D-9" edge="1">
+        <mxCell id="zzjIF3lNwweGvg3sCjhe-7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="zzjIF3lNwweGvg3sCjhe-1" target="zzjIF3lNwweGvg3sCjhe-6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="zzjIF3lNwweGvg3sCjhe-1" value="Timestamp&lt;br style=&quot;font-size: 10px&quot;&gt;&lt;font size=&quot;1&quot;&gt;&lt;i&gt;Legger til timestamp fra RTC på måling&lt;/i&gt;&lt;/font&gt;" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;" vertex="1" parent="1">
+          <mxGeometry x="340" y="280" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="zzjIF3lNwweGvg3sCjhe-3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="zzjIF3lNwweGvg3sCjhe-2" target="zzjIF3lNwweGvg3sCjhe-1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="zzjIF3lNwweGvg3sCjhe-21" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="zzjIF3lNwweGvg3sCjhe-2" target="zzjIF3lNwweGvg3sCjhe-22">
           <mxGeometry relative="1" as="geometry">
-            <mxPoint x="400" y="539" as="targetPoint" />
+            <mxPoint x="560" y="520" as="targetPoint" />
             <Array as="points">
-              <mxPoint x="400" y="539" />
+              <mxPoint x="560" y="510" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="KXGbyRWlH0LsL0UsSs6D-16" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="KXGbyRWlH0LsL0UsSs6D-9" target="KXGbyRWlH0LsL0UsSs6D-6" edge="1">
+        <mxCell id="zzjIF3lNwweGvg3sCjhe-2" value="Input&lt;br style=&quot;font-size: 10px&quot;&gt;&lt;font size=&quot;1&quot;&gt;Dato og tid fra RTC&lt;/font&gt;" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;" vertex="1" parent="1">
+          <mxGeometry x="500" y="280" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="zzjIF3lNwweGvg3sCjhe-14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="zzjIF3lNwweGvg3sCjhe-6" target="zzjIF3lNwweGvg3sCjhe-22">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="400" y="470" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="zzjIF3lNwweGvg3sCjhe-6" value="List&lt;br style=&quot;font-size: 10px&quot;&gt;&lt;font size=&quot;1&quot;&gt;Oppbevarer målinger i liste klar for sending&lt;/font&gt;" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;" vertex="1" parent="1">
+          <mxGeometry x="340" y="370" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="zzjIF3lNwweGvg3sCjhe-10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="zzjIF3lNwweGvg3sCjhe-9" target="KXGbyRWlH0LsL0UsSs6D-7">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="170" y="220" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="zzjIF3lNwweGvg3sCjhe-9" value="&lt;span&gt;Sleep&lt;/span&gt;&lt;br&gt;&lt;i&gt;&lt;font style=&quot;font-size: 10px&quot;&gt;Arduino går i sleep mode for å spare strøm&lt;/font&gt;&lt;/i&gt;" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;" vertex="1" parent="1">
+          <mxGeometry x="110" y="480" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="zzjIF3lNwweGvg3sCjhe-16" value="5 min &amp;gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="260" y="480" width="50" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="zzjIF3lNwweGvg3sCjhe-20" value="5 min &amp;lt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="414" y="575" width="50" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="zzjIF3lNwweGvg3sCjhe-23" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="zzjIF3lNwweGvg3sCjhe-22" target="zzjIF3lNwweGvg3sCjhe-9">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="KXGbyRWlH0LsL0UsSs6D-9" value="Processing of data&lt;br&gt;&lt;i&gt;&lt;font style=&quot;font-size: 10px&quot;&gt;Konvertering av data før sending&lt;/font&gt;&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
-          <mxGeometry x="340" y="360" width="120" height="60" as="geometry" />
+        <mxCell id="zzjIF3lNwweGvg3sCjhe-24" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="zzjIF3lNwweGvg3sCjhe-22" target="KXGbyRWlH0LsL0UsSs6D-8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="zzjIF3lNwweGvg3sCjhe-22" value="Tid siden sist TX" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="340" y="480" width="120" height="60" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
