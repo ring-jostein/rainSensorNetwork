@@ -1,3 +1,9 @@
+/*For å teste koden trens 1 kabel, den settes i d2 før koden kjøres, 
+når LED på Arduino er slått av og kortet er i sleep mode kan den andre siden av kabelen settes i GND.
+Dette vil kjøre interrupten og vekke kortet fra sleep mode. Etter det er det en 5 sekund delay for å dra 
+kabelen ut fra GND før kortet går i sleep mode igjen, dras ikke kabelen ut før de 5 sekundene
+vil ikke interrupten funke lengre
+*/
 #include <avr/sleep.h> //this AVR library contains the method that controls the sleep modes
 #define interuptPin 2 //Pin we are going to use to wake up the Arduino
 
