@@ -6,6 +6,7 @@ void setup()
   myRTC.begin(); //initialiserer I2C bus
 }
 
-void loop() {
+void loop() 
+{
   // put your main code here, to run repeatedly:
 }
