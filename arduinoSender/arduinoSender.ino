@@ -1,12 +1,23 @@
-#include DS3232RTC.h
+#include <DS3232RTC.h>
+#include <TimeLib.h>
 
-void setup() 
+tmElements_t tm;
+
+void setup() // put your setup code here, to run once
 {
-  // put your setup code here, to run once:
-  myRTC.begin(); //initialiserer I2C bus
+  Serial.begin(9600);
+  setTime(15, 35, 00, 10, 02, 2021);
+  RTC.begin();  //initialiserer I2C bus
+  RTC.set(now());  //setter RTC fra systemtid
 }
 
-void loop() 
+void loop() // put your main code here, to run repeatedly
 {
-  // put your main code here, to run repeatedly:
+  RTC.read(tm);
+  Serial.print(tm.Hour, DEC);
+  Serial.print(':');
+  Serial.print(tm.Minute, DEC);
+  Serial.print(':');
+  Serial.println(tm.Second, DEC);
+  delay(1000);
 }
