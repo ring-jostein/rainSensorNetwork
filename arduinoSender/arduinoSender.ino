@@ -14,10 +14,15 @@ void setup() // put your setup code here, to run once
 void loop() // put your main code here, to run repeatedly
 {
   RTC.read(tm);
+  int t = RTC.temperature();
+  float celcius = t / 4.0;
   Serial.print(tm.Hour, DEC);
   Serial.print(':');
   Serial.print(tm.Minute, DEC);
   Serial.print(':');
-  Serial.println(tm.Second, DEC);
+  Serial.print(tm.Second, DEC);
+  Serial.print(" Temperatur: ");
+  Serial.print(celcius);
+  Serial.println(" Celcius");
   delay(1000);
 }
