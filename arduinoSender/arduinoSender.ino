@@ -3,13 +3,15 @@
 #include <avr/sleep.h>
 
 const byte interruptPinRTC = 2;
-volatile byte state = LOW;
+const byte interruptPinRainGauge = 3;
 tmElements_t tm;
 
 void setup() // put your setup code here, to run once
 {
+  
   pinMode(interruptPinRTC, INPUT_PULLUP);
-  Serial.begin(115200);
+  pinMode(interruptPinRainGauge, INPUT_PULLUP);
+  Serial.begin(2000000);
 
   //Fjern kommentar og endre verdier for å stille RTC. Kommenter igjen for å hindre RTC fra å bli stilt hver gang du laster opp kode
   /*
@@ -36,7 +38,6 @@ void setup() // put your setup code here, to run once
 
 void loop() // put your main code here, to run repeatedly
 {
-  delay(5000);
   sleepMode();
 }
 
@@ -44,12 +45,11 @@ void sleepMode()
 {
   Serial.println("Going to sleep...");
   sleep_enable();
-  attachInterrupt(digitalPinToInterrupt(interruptPinRTC), wakeUp, FALLING);
+  attachInterrupt(digitalPinToInterrupt(interruptPinRTC), wakeUp1, FALLING);
+  attachInterrupt(digitalPinToInterrupt(interruptPinRainGauge), wakeUp2, FALLING);
   set_sleep_mode(SLEEP_MODE_PWR_DOWN);
   digitalWrite(LED_BUILTIN, LOW);
-  delay(100);
   sleep_cpu();
-  
   Serial.println("Waking up...");
   digitalWrite(LED_BUILTIN, HIGH);
   
@@ -69,9 +69,16 @@ void sleepMode()
 }
 
 
-void wakeUp() //funksjon som interrupter ved å gi alarm
+void wakeUp1() //funksjon som interrupter ved å gi alarm
 {
   detachInterrupt(digitalPinToInterrupt(interruptPinRTC));
-  Serial.println("Interrupted sleep");
+  Serial.println("Interrupted sleep from alarm.");
+  sleep_disable();
+}
+
+void wakeUp2()
+{
+  detachInterrupt(digitalPinToInterrupt(interruptPinRainGauge));
+  Serial.println("Interrupted sleep from rain gauge.");
   sleep_disable();
 }
