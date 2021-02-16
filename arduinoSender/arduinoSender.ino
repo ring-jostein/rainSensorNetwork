@@ -68,6 +68,7 @@ void sleepMode()
     Serial.print(" Temperatur: ");
     Serial.print(celcius);
     Serial.println(" Celcius");
+    
     RTC.clearAlarm(ALARM_2);
   }
   
@@ -75,6 +76,14 @@ void sleepMode()
   {
     Serial.println("Interrupted sleep from rain gauge.");
     Serial.println("Nedbørsmåling");
+    Serial.print(tm.Hour, DEC);
+    Serial.print(':');
+    Serial.print(tm.Minute, DEC);
+    Serial.print(':');
+    Serial.print(tm.Second, DEC);
+    Serial.print(" Temperatur: ");
+    Serial.print(celcius);
+    Serial.println(" Celcius");
   }
 }
 
