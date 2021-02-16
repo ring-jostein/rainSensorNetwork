@@ -24,6 +24,9 @@ void setup() // put your setup code here, to run once
   RTC.write(tm);  //set the RTC from the tm structure
   */
 
+// set the RTC time and date to the compile time
+    RTC.set(compileTime());
+
   RTC.setAlarm(ALM1_MATCH_DATE, 0, 0, 0, 1);
   RTC.setAlarm(ALM2_MATCH_DATE, 0, 0, 0, 1);
   RTC.alarm(ALARM_1);
@@ -81,4 +84,27 @@ void wakeUp2()
   detachInterrupt(digitalPinToInterrupt(interruptPinRainGauge));
   Serial.println("Interrupted sleep from rain gauge.");
   sleep_disable();
+}
+
+// function to return the compile date and time as a time_t value
+time_t compileTime()
+{
+    const time_t FUDGE(10);    //fudge factor to allow for upload time, etc. (seconds, YMMV)
+    const char *compDate = __DATE__, *compTime = __TIME__, *months = "JanFebMarAprMayJunJulAugSepOctNovDec";
+    char compMon[4], *m;
+
+    strncpy(compMon, compDate, 3);
+    compMon[3] = '\0';
+    m = strstr(months, compMon);
+
+    tmElements_t tm;
+    tm.Month = ((m - months) / 3 + 1);
+    tm.Day = atoi(compDate + 4);
+    tm.Year = atoi(compDate + 7) - 1970;
+    tm.Hour = atoi(compTime);
+    tm.Minute = atoi(compTime + 3);
+    tm.Second = atoi(compTime + 6);
+
+    time_t t = makeTime(tm);
+    return t + FUDGE;        //add fudge factor to allow for compile time
 }
