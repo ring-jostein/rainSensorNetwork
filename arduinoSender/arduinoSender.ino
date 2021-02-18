@@ -5,8 +5,6 @@
 const byte interruptPinRTC = 2;
 const byte interruptPinRainGauge = 3;
 tmElements_t tm;
-String rainData[100];
-int i = 0;
 
 void setup()
 {
@@ -35,6 +33,8 @@ void setup()
 void loop()
 {
   sleepMode();
+  dataLogger(RTC.checkAlarm(ALARM_2));
+  //sendData();
 }
 
 //setter Arduino i sleepmode og aktiverer interrupt-pinner som vekker den
@@ -46,11 +46,93 @@ void sleepMode()
   attachInterrupt(digitalPinToInterrupt(interruptPinRainGauge), wakeUpRain, FALLING);
   set_sleep_mode(SLEEP_MODE_PWR_DOWN);
   sleep_cpu();
-  
   Serial.println("Waking up...");  //kun for testing
-  dataString(RTC.checkAlarm(ALARM_2));
+}
+
+void dataLogger(bool alarmCheck)
+{
+  String dataString = "";
+  int t = 0;
+  int celcius = 0;
+  char delim1 = '.';
+  char delim2 = ':';
+  char delim3 = ' ';
   
-  //sendData();
+  RTC.read(tm);
+  t = RTC.temperature();
+  celcius = t / 4.0;
+
+  //Konstruerer og formaterer string av data
+  for(int i = 1; i < 7; i++)
+  {
+    switch(i)
+    {
+      case 1:
+      dataString += format00(tm.Day, delim1);
+      break;
+
+      case 2:
+      dataString += format00(tm.Month, delim1);
+      break;
+
+      case 3:
+      dataString += String(tm.Year + 1970, DEC);
+      dataString += delim3;
+      break;
+
+      case 4:
+      dataString += format00(tm.Hour, delim2);
+      break;
+
+      case 5:
+      dataString += format00(tm.Minute, delim2);
+      break;
+
+      case 6:
+      dataString += format00(tm.Second, delim3);
+      break;
+    }
+  }
+
+  dataString += "Temperatur: ";
+  dataString += String(celcius, DEC);
+  dataString += "C ";
+
+  //sjekker om det er registrert nedbør eller ikke
+  if(alarmCheck) 
+  {
+    dataString += "Nedbør: 0";
+    RTC.clearAlarm(ALARM_2);
+  }
+  else dataString += "Nedbør: 1";
+
+  //lagrer data
+  Serial.println(dataString);  //kun for testing
+  //writeToSD()
+}
+
+String format00(int verdi, char delim)  //formaterer tall under 10 til å vises som 0X
+{
+  String string = "";
+  
+  if(verdi < 10)
+  {
+    string = '0';
+    string += String(verdi, DEC);
+    string += delim;
+  }
+  else 
+  {
+    string += String(verdi, DEC);
+    string += delim;
+  }
+
+  return string;
+}
+
+void sendData()
+{
+  
 }
 
 void wakeUpAlarm()  //ISR for RTC
@@ -85,42 +167,4 @@ time_t compileTime()
 
     time_t t = makeTime(tm);
     return t + FUDGE;        //add fudge factor to allow for compile time
-}
-
-void dataString(bool alarmCheck)
-{
-  String dataString = "";
-  int t = 0;
-  RTC.read(tm);
-  t = RTC.temperature();
-  String celcius = String(t / 4.0);
-  
-  dataString += String(tm.Day, DEC);
-  dataString += String(tm.Month, DEC);
-  dataString += String(tm.Year + 1970);
-  dataString += ' ';
-  dataString += String(tm.Hour, DEC);
-  dataString += String(tm.Minute, DEC);
-  dataString += String(tm.Second, DEC);
-  dataString += ' ';
-  dataString += celcius;
-  dataString += ' ';
-
-  if(alarmCheck)
-  {
-    dataString += "0";
-  }
-  else
-  {
-    dataString += "1";
-  }
-
-  rainData[i] = dataString;
-  Serial.println(rainData[i]);
-  i++;
-}
-
-void sendData()
-{
-  
 }
