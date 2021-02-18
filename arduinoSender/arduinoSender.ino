@@ -2,6 +2,8 @@
 #include <TimeLib.h>
 #include <avr/sleep.h>
 
+DS3232RTC rtcInstance;    //delkarerer tilfelle av RTC
+
 const byte interruptPinRTC = 2;
 const byte interruptPinRainGauge = 3;
 tmElements_t tm;
@@ -13,8 +15,7 @@ void setup()
   pinMode(interruptPinRainGauge, INPUT_PULLUP);
   Serial.begin(2000000);
   
-  //stiller RTC til dato og tid for kompilering
-  RTC.set(compileTime());
+  rtcInstance.begin();    //RTC henter tid fra
   
   //Blokk som setter alarmer til kjente verdier
   RTC.setAlarm(ALM1_MATCH_DATE, 0, 0, 0, 1);
@@ -102,12 +103,14 @@ void dataLogger(bool alarmCheck)
   if(alarmCheck) 
   {
     dataString += "Nedbør: 0";
+    printTime();    //funksjon som skriver ut tid
     RTC.clearAlarm(ALARM_2);
   }
   else dataString += "Nedbør: 1";
 
   //lagrer data
   Serial.println(dataString);  //kun for testing
+  printTime();    //funksjon som skriver ut tid
   //writeToSD()
 }
 
@@ -147,24 +150,14 @@ void wakeUpRain()  //ISR for nedbørsmåler
   sleep_disable();
 }
 
-//funksjon som gir tilbake dato og tid for kompilering
-time_t compileTime()
+void printTime()    
 {
-    const time_t FUDGE(10);    //fudge factor to allow for upload time, etc. (seconds, YMMV)
-    const char *compDate = __DATE__, *compTime = __TIME__, *months = "JanFebMarAprMayJunJulAugSepOctNovDec";
-    char compMon[4], *m;
-
-    strncpy(compMon, compDate, 3);
-    compMon[3] = '\0';
-    m = strstr(months, compMon);
-
-    tm.Month = ((m - months) / 3 + 1);
-    tm.Day = atoi(compDate + 4);
-    tm.Year = atoi(compDate + 7) - 1970;
-    tm.Hour = atoi(compTime);
-    tm.Minute = atoi(compTime + 3);
-    tm.Second = atoi(compTime + 6);
-
-    time_t t = makeTime(tm);
-    return t + FUDGE;        //add fudge factor to allow for compile time
+  char buf[40];
+    time_t t = rtcInstance.get();
+    float celsius = rtcInstance.temperature() / 4;
+    sprintf(buf, "%.2d:%.2d:%.2d %.2d. %s %d ",
+        hour(t), minute(t), second(t), day(t), monthShortStr(month(t)), year(t));
+    Serial.print(buf);
+    Serial.print(celsius);
+    Serial.println("C ");
 }
