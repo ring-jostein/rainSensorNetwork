@@ -6,16 +6,15 @@
 const byte interruptPinRTC = 2;
 const byte interruptPinRainGauge = 3;
 tmElements_t tm;
-int t = 0;
 
-void setup() // put your setup code here, to run once
+void setup()
 {
   digitalWrite(LED_BUILTIN, LOW); //strømsparing
   pinMode(interruptPinRTC, INPUT_PULLUP);
   pinMode(interruptPinRainGauge, INPUT_PULLUP);
   Serial.begin(2000000);
   
-  // set the RTC time and date to the compile time
+  //stiller RTC til dato og tid for kompilering
   RTC.set(compileTime());
   
   //Blokk som setter alarmer til kjente verdier
@@ -27,73 +26,129 @@ void setup() // put your setup code here, to run once
   RTC.alarmInterrupt(ALARM_2, false);
   RTC.squareWave(SQWAVE_NONE);
 
-  RTC.setAlarm(ALM2_EVERY_MINUTE, 0, 0, 0, 0);  //setter alarm på RTC til å gå av hvert minutt
-  RTC.alarmInterrupt(ALARM_2, true);            //aktiverer alarm slik at INT flagger når alarm går av
+  //setter alarm på RTC til å gå av hvert minutt og aktiverer pin for interrupt-signal fra RTC
+  RTC.setAlarm(ALM2_EVERY_MINUTE, 0, 0, 0, 0);  //gjøres om til hvert 30. minutt ved reell bruk
+  RTC.alarmInterrupt(ALARM_2, true);
 }
 
-void loop() // put your main code here, to run repeatedly
+void loop()
 {
   sleepMode();
+  dataLogger(RTC.checkAlarm(ALARM_2));
+  //sendData();
 }
 
+//setter Arduino i sleepmode og aktiverer interrupt-pinner som vekker den
 void sleepMode()
 {
-  Serial.println("Going to sleep...");
+  Serial.println("Going to sleep...");  //kun for testing
   sleep_enable();
-  attachInterrupt(digitalPinToInterrupt(interruptPinRTC), wakeUp1, FALLING);
-  attachInterrupt(digitalPinToInterrupt(interruptPinRainGauge), wakeUp2, FALLING);
+  attachInterrupt(digitalPinToInterrupt(interruptPinRTC), wakeUpAlarm, FALLING);
+  attachInterrupt(digitalPinToInterrupt(interruptPinRainGauge), wakeUpRain, FALLING);
   set_sleep_mode(SLEEP_MODE_PWR_DOWN);
   sleep_cpu();
-  
-  Serial.println("Waking up...");
-  RTC.read(tm);
-  t = RTC.temperature();
-  float celcius = t / 4.0;
-
-  if (RTC.checkAlarm(ALARM_2)) //sjekker for om Arduino våknet av alarm
-  {
-    Serial.println("Interrupted sleep from alarm.");
-    Serial.print(tm.Hour, DEC);
-    Serial.print(':');
-    Serial.print(tm.Minute, DEC);
-    Serial.print(':');
-    Serial.print(tm.Second, DEC);
-    Serial.print(" Temperatur: ");
-    Serial.print(celcius);
-    Serial.println(" Celcius");
-    
-    RTC.clearAlarm(ALARM_2);
-  }
-  
-  else //Arduino vekket av nedbørsmåling
-  {
-    Serial.println("Interrupted sleep from rain gauge.");
-    Serial.println("Nedbørsmåling");
-    Serial.print(tm.Hour, DEC);
-    Serial.print(':');
-    Serial.print(tm.Minute, DEC);
-    Serial.print(':');
-    Serial.print(tm.Second, DEC);
-    Serial.print(" Temperatur: ");
-    Serial.print(celcius);
-    Serial.println(" Celcius");
-  }
+  Serial.println("Waking up...");  //kun for testing
 }
 
+void dataLogger(bool alarmCheck)
+{
+  String dataString = "";
+  int t = 0;
+  int celcius = 0;
+  char delim1 = '.';
+  char delim2 = ':';
+  char delim3 = ' ';
+  
+  RTC.read(tm);
+  t = RTC.temperature();
+  celcius = t / 4.0;
 
-void wakeUp1() //funksjon som interrupter ved å gi alarm
+  //Konstruerer og formaterer string av data
+  for(int i = 1; i < 7; i++)
+  {
+    switch(i)
+    {
+      case 1:
+      dataString += format00(tm.Day, delim1);
+      break;
+
+      case 2:
+      dataString += format00(tm.Month, delim1);
+      break;
+
+      case 3:
+      dataString += String(tm.Year + 1970, DEC);
+      dataString += delim3;
+      break;
+
+      case 4:
+      dataString += format00(tm.Hour, delim2);
+      break;
+
+      case 5:
+      dataString += format00(tm.Minute, delim2);
+      break;
+
+      case 6:
+      dataString += format00(tm.Second, delim3);
+      break;
+    }
+  }
+
+  dataString += "Temperatur: ";
+  dataString += String(celcius, DEC);
+  dataString += "C ";
+
+  //sjekker om det er registrert nedbør eller ikke
+  if(alarmCheck) 
+  {
+    dataString += "Nedbør: 0";
+    RTC.clearAlarm(ALARM_2);
+  }
+  else dataString += "Nedbør: 1";
+
+  //lagrer data
+  Serial.println(dataString);  //kun for testing
+  //writeToSD()
+}
+
+String format00(int verdi, char delim)  //formaterer tall under 10 til å vises som 0X
+{
+  String string = "";
+  
+  if(verdi < 10)
+  {
+    string = '0';
+    string += String(verdi, DEC);
+    string += delim;
+  }
+  else 
+  {
+    string += String(verdi, DEC);
+    string += delim;
+  }
+
+  return string;
+}
+
+void sendData()
+{
+  
+}
+
+void wakeUpAlarm()  //ISR for RTC
 {
   detachInterrupt(digitalPinToInterrupt(interruptPinRTC));
   sleep_disable();
 }
 
-void wakeUp2()
+void wakeUpRain()  //ISR for nedbørsmåler
 {
   detachInterrupt(digitalPinToInterrupt(interruptPinRainGauge));
   sleep_disable();
 }
 
-// function to return the compile date and time as a time_t value
+//funksjon som gir tilbake dato og tid for kompilering
 time_t compileTime()
 {
     const time_t FUDGE(10);    //fudge factor to allow for upload time, etc. (seconds, YMMV)
@@ -104,7 +159,6 @@ time_t compileTime()
     compMon[3] = '\0';
     m = strstr(months, compMon);
 
-    tmElements_t tm;
     tm.Month = ((m - months) / 3 + 1);
     tm.Day = atoi(compDate + 4);
     tm.Year = atoi(compDate + 7) - 1970;
