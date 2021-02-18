@@ -3,7 +3,6 @@
 #include <DS3232RTC.h>
 #include <TimeLib.h>
 #include <avr/sleep.h>
-#include <ESP8266Wifi.h>
 
 const byte interruptPinRTC = 2;
 const byte interruptPinRainGauge = 3;
@@ -16,8 +15,7 @@ void setup()
   pinMode(interruptPinRTC, INPUT_PULLUP);
   pinMode(interruptPinRainGauge, INPUT_PULLUP);
   Serial.begin(2000000);
-  while(!Serial);
-
+  
   /*
   //Initialiserer SD-kort og sjekker for feil
   Serial.println("Initialiserer SD-kort...");
@@ -177,24 +175,27 @@ void wakeUpRain()  //ISR for nedbørsmåler
   sleep_disable();
 }
 
-//funksjon som gir tilbake dato og tid for kompilering
+//Henter ut kompileringsdato og tid. Gjør om char strings fra DATE og TIME til INT-verdier som kan gies til tm.
 time_t compileTime()
 {
-    const time_t FUDGE(10);    //fudge factor to allow for upload time, etc. (seconds, YMMV)
+    const time_t FUDGE(10);  //definerer tiden det tar å kompilere koden
     const char *compDate = __DATE__, *compTime = __TIME__, *months = "JanFebMarAprMayJunJulAugSepOctNovDec";
     char compMon[4], *m;
 
-    strncpy(compMon, compDate, 3);
+    strncpy(compMon, compDate, 3); //kopierer de tre første karakterene fra compDate inn i compMon (måned i trebokstavsforkortelse)
     compMon[3] = '\0';
-    m = strstr(months, compMon);
-
-    tm.Month = ((m - months) / 3 + 1);
+    m = strstr(months, compMon);  //substring fra punktet stringen compMon finnes i months
+    
+    //finner heltallet for punktet m starter i months. Ved å dele på tre vil hver måned representeres som et tall fra 0-11. +1 for å få verdier fra 1-12.
+    tm.Month = ((m - months) / 3 + 1);  
+    
+    //konverter substring fra definert punkt til neste "whitespace" til et heltall.
     tm.Day = atoi(compDate + 4);
-    tm.Year = atoi(compDate + 7) - 1970;
+    tm.Year = atoi(compDate + 7) - 1970;  //trekker fra 1970 fordi år på RTC er antall år etter 1970. Eks. 2021-1970 = 51
     tm.Hour = atoi(compTime);
     tm.Minute = atoi(compTime + 3);
     tm.Second = atoi(compTime + 6);
 
-    time_t t = makeTime(tm);
-    return t + FUDGE;        //add fudge factor to allow for compile time
+    time_t t = makeTime(tm);  //tid t er alle elementene tm
+    return t + FUDGE;  //legger til fudge for å kompensere for tiden det tar å kompilere
 }
