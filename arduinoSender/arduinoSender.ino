@@ -6,8 +6,9 @@
 
 const byte interruptPinRTC = 2;
 const byte interruptPinRainGauge = 3;
-const int chipSelect = 10; //endre til rett verdi basert på type SD-kort shield
+const int chipSelect = 10;
 tmElements_t tm;
+File dataFil;
 
 void setup()
 {
@@ -16,7 +17,6 @@ void setup()
   pinMode(interruptPinRainGauge, INPUT_PULLUP);
   Serial.begin(2000000);
   
-  /*
   //Initialiserer SD-kort og sjekker for feil
   Serial.println("Initialiserer SD-kort...");
   if(!SD.begin(chipSelect))
@@ -25,7 +25,6 @@ void setup()
     while (true);
   }
   else Serial.println("Initialisering ferdig.");
-  */
   
   //stiller RTC til dato og tid for kompilering
   RTC.set(compileTime());
@@ -48,6 +47,7 @@ void loop()
 {
   sleepMode();
   dataLogger(RTC.checkAlarm(ALARM_2));
+  lesFraSD(); //kun for testing
   //sendData();
 }
 
@@ -64,6 +64,7 @@ void sleepMode()
   Serial.println("Waking up...");  //kun for testing
 }
 
+//funksjon for å konstruere nødvendig data i en String og lagre disse til SD-kort
 void dataLogger(bool alarmCheck)
 {
   String dataString = "";
@@ -123,8 +124,7 @@ void dataLogger(bool alarmCheck)
 
   //lagrer data
   Serial.println(dataString);  //kun for testing
-  Serial.println();
-  //lagreTilSD(dataString);
+  lagreTilSD(dataString);
 }
 
 String format00(int verdi, char delim)  //formaterer tall under 10 til å vises som 0X
@@ -148,14 +148,31 @@ String format00(int verdi, char delim)  //formaterer tall under 10 til å vises 
 
 void lagreTilSD(String dataString)
 {
-    File dataFil = SD.open("datalog.txt", FILE_WRITE);
+  dataFil = SD.open("datalog.txt", FILE_WRITE);
 
-    if(dataFil)
+  if(dataFil)
+  {
+    dataFil.println(dataString);
+    dataFil.close();
+  }
+  else Serial.println("Feil: Kan ikke åpne datalog.txt fra SD-kort");
+}
+
+//testfunksjon for å se at det er data på SD-kortet
+void lesFraSD()
+{
+  dataFil = SD.open("datalog.txt");
+
+  if(dataFil)
+  {
+    Serial.println("datalog.txt: ");
+    while(dataFil.available())
     {
-      dataFil.println(dataString);
-      dataFil.close();
+      Serial.write(dataFil.read());
     }
-    else Serial.println("Feil: Kan ikke åpne datalog.txt fra SD-kort");
+    dataFil.close();
+  }
+  else Serial.println("Feil: Kan ikke åpne datalog.txt fra SD-kort");
 }
 
 void sendData()
