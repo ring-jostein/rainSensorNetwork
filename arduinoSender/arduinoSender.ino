@@ -55,7 +55,6 @@ void loop()
 void sleepMode()
 {
   Serial.println("Going to sleep...");  //kun for testing
-  Serial.println();
   sleep_enable();
   attachInterrupt(digitalPinToInterrupt(interruptPinRTC), wakeUpAlarm, FALLING);
   attachInterrupt(digitalPinToInterrupt(interruptPinRainGauge), wakeUpRain, FALLING);
