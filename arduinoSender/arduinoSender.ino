@@ -47,7 +47,7 @@ void loop()
 {
   sleepMode();
   dataLogger(RTC.checkAlarm(ALARM_2));
-  lesFraSD(); //kun for testing
+  //lesFraSD(); //kun for testing
   //sendData();
 }
 
