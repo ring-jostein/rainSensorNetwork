@@ -1,12 +1,24 @@
+#include <WiFiEspAT.h>
 #include <SD.h>
 #include <SPI.h>
 #include <DS3232RTC.h>
 #include <TimeLib.h>
 #include <avr/sleep.h>
 
-const byte interruptPinRTC = 2;
-const byte interruptPinRainGauge = 3;
-const int chipSelect = 10;
+// Emulate Serial1 on pins 6/7 if not present
+#ifndef HAVE_HWSERIAL1
+#include "SoftwareSerial.h"
+SoftwareSerial Serial1(6, 7); //TXD, RXD
+#endif
+
+#define MAX_CLIENTS WIFIESPAT_LINKS_COUNT
+#define interruptPinRTC 2
+#define interruptPinRainGauge 3
+#define chipSelect 10
+#define delim1 '.'
+#define delim2 ':'
+#define delim3 ' '
+
 tmElements_t tm;
 File dataFil;
 
@@ -15,8 +27,27 @@ void setup()
   digitalWrite(LED_BUILTIN, LOW); //strømsparing
   pinMode(interruptPinRTC, INPUT_PULLUP);
   pinMode(interruptPinRainGauge, INPUT_PULLUP);
-  Serial.begin(2000000);
   
+  // initialize serial for debugging
+  Serial.begin(2000000);
+  // initialize serial for ESP module
+  Serial1.begin(9600);
+  // initialize ESP module
+  WiFi.init(&Serial1);
+  
+  if (WiFi.status() == WL_NO_MODULE) 
+  {
+    Serial.println();
+    Serial.println("Communication with WiFi module failed!");
+    // don't continue
+    while (true);
+  }
+
+  // waiting for connection to Wifi network set with the SetupWiFiConnection sketch
+  Serial.println("Waiting for connection to WiFi");
+  while (WiFi.status() != WL_CONNECTED) {}
+  Serial.println("Connected");
+
   //Initialiserer SD-kort og sjekker for feil
   Serial.println("Initialiserer SD-kort...");
   if(!SD.begin(chipSelect))
@@ -47,7 +78,6 @@ void loop()
 {
   sleepMode();
   dataLogger(RTC.checkAlarm(ALARM_2));
-  lesFraSD(); //kun for testing
   //sendData();
 }
 
@@ -55,7 +85,6 @@ void loop()
 void sleepMode()
 {
   Serial.println("Going to sleep...");  //kun for testing
-  Serial.println();
   sleep_enable();
   attachInterrupt(digitalPinToInterrupt(interruptPinRTC), wakeUpAlarm, FALLING);
   attachInterrupt(digitalPinToInterrupt(interruptPinRainGauge), wakeUpRain, FALLING);
@@ -68,15 +97,10 @@ void sleepMode()
 void dataLogger(bool alarmCheck)
 {
   String dataString = "";
-  int t = 0;
-  int celcius = 0;
-  char delim1 = '.';
-  char delim2 = ':';
-  char delim3 = ' ';
   
   RTC.read(tm);
-  t = RTC.temperature();
-  celcius = t / 4.0;
+  int t = RTC.temperature();
+  int celcius = t / 4.0;
 
   //Konstruerer og formaterer string av data
   for(int i = 1; i < 7; i++)
@@ -158,23 +182,6 @@ void lagreTilSD(String dataString)
   else Serial.println("Feil: Kan ikke åpne datalog.txt fra SD-kort");
 }
 
-//testfunksjon for å se at det er data på SD-kortet
-void lesFraSD()
-{
-  dataFil = SD.open("datalog.txt");
-
-  if(dataFil)
-  {
-    Serial.println("datalog.txt: ");
-    while(dataFil.available())
-    {
-      Serial.write(dataFil.read());
-    }
-    dataFil.close();
-  }
-  else Serial.println("Feil: Kan ikke åpne datalog.txt fra SD-kort");
-}
-
 void sendData()
 {
   
@@ -195,24 +202,24 @@ void wakeUpRain()  //ISR for nedbørsmåler
 //Henter ut kompileringsdato og tid. Gjør om char strings fra DATE og TIME til INT-verdier som kan gies til tm.
 time_t compileTime()
 {
-    const time_t FUDGE(10);  //definerer tiden det tar å kompilere koden
-    const char *compDate = __DATE__, *compTime = __TIME__, *months = "JanFebMarAprMayJunJulAugSepOctNovDec";
-    char compMon[4], *m;
-
-    strncpy(compMon, compDate, 3); //kopierer de tre første karakterene fra compDate inn i compMon (måned i trebokstavsforkortelse)
-    compMon[3] = '\0';
-    m = strstr(months, compMon);  //substring fra punktet stringen compMon finnes i months
-    
-    //finner heltallet for punktet m starter i months. Ved å dele på tre vil hver måned representeres som et tall fra 0-11. +1 for å få verdier fra 1-12.
-    tm.Month = ((m - months) / 3 + 1);  
-    
-    //konverter substring fra definert punkt til neste "whitespace" til et heltall.
-    tm.Day = atoi(compDate + 4);
-    tm.Year = atoi(compDate + 7) - 1970;  //trekker fra 1970 fordi år på RTC er antall år etter 1970. Eks. 2021-1970 = 51
-    tm.Hour = atoi(compTime);
-    tm.Minute = atoi(compTime + 3);
-    tm.Second = atoi(compTime + 6);
-
-    time_t t = makeTime(tm);  //tid t er alle elementene tm
-    return t + FUDGE;  //legger til fudge for å kompensere for tiden det tar å kompilere
+  const time_t FUDGE(10);  //definerer tiden det tar å kompilere koden
+  const char *compDate = __DATE__, *compTime = __TIME__, *months = "JanFebMarAprMayJunJulAugSepOctNovDec";
+  char compMon[4], *m;
+  
+  strncpy(compMon, compDate, 3); //kopierer de tre første karakterene fra compDate inn i compMon (måned i trebokstavsforkortelse)
+  compMon[3] = '\0';
+  m = strstr(months, compMon);  //substring fra punktet stringen compMon finnes i months
+  
+  //finner heltallet for punktet m starter i months. Ved å dele på tre vil hver måned representeres som et tall fra 0-11. +1 for å få verdier fra 1-12.
+  tm.Month = ((m - months) / 3 + 1);  
+  
+  //konverter substring fra definert punkt til neste "whitespace" til et heltall.
+  tm.Day = atoi(compDate + 4);
+  tm.Year = atoi(compDate + 7) - 1970;  //trekker fra 1970 fordi år på RTC er antall år etter 1970. Eks. 2021-1970 = 51
+  tm.Hour = atoi(compTime);
+  tm.Minute = atoi(compTime + 3);
+  tm.Second = atoi(compTime + 6);
+  
+  time_t t = makeTime(tm);  //tid t er alle elementene tm
+  return t + FUDGE;  //legger til fudge for å kompensere for tiden det tar å kompilere
 }
