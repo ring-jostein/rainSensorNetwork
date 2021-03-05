@@ -15,9 +15,6 @@ SoftwareSerial Serial1(6, 7); //TXD, RXD
 #define interruptPinRTC 2
 #define interruptPinRainGauge 3
 #define chipSelect 10
-#define delim1 '.'
-#define delim2 ':'
-#define delim3 ' '
 
 tmElements_t tm;
 File dataFil;
@@ -37,25 +34,24 @@ void setup()
   
   if (WiFi.status() == WL_NO_MODULE) 
   {
-    Serial.println();
-    Serial.println("Communication with WiFi module failed!");
+    //Serial.println("Communication with WiFi module failed!");
     // don't continue
     while (true);
   }
 
   // waiting for connection to Wifi network set with the SetupWiFiConnection sketch
-  Serial.println("Waiting for connection to WiFi");
+  //Serial.println("Waiting for connection to WiFi");
   while (WiFi.status() != WL_CONNECTED) {}
-  Serial.println("Connected");
+  //Serial.println("Connected");
 
   //Initialiserer SD-kort og sjekker for feil
-  Serial.println("Initialiserer SD-kort...");
+  //Serial.println("Initialiserer SD-kort...");
   if(!SD.begin(chipSelect))
   {
-    Serial.println("Initialisering feilet, sjekk SD-kort!");
+    //Serial.println("Initialisering feilet, sjekk SD-kort!");
     while (true);
   }
-  else Serial.println("Initialisering ferdig.");
+  //else Serial.println("Initialisering ferdig.");
   
   //stiller RTC til dato og tid for kompilering
   RTC.set(compileTime());
@@ -78,6 +74,8 @@ void loop()
 {
   sleepMode();
   dataLogger(RTC.checkAlarm(ALARM_2));
+  lesFraSD();
+  //slettData();
   //sendData();
 }
 
@@ -96,81 +94,26 @@ void sleepMode()
 //funksjon for å konstruere nødvendig data i en String og lagre disse til SD-kort
 void dataLogger(bool alarmCheck)
 {
-  String dataString = "";
+  char dataString[40];
+  time_t t = RTC.get();
+  char regn;
+  int celcius = RTC.temperature() / 4.0;
+
+  if (alarmCheck)
+  {
+    regn = '0';
+  }
+  else regn = '1';
+
+  sprintf(dataString, "%.2d.%.2d.%d %.2d:%.2d:%.2d %i %c", day(t), month(t), year(t), hour(t), minute(t), second(t), celcius, regn);
+  //sprintf(dataString, "%.2d:%.2d:%.2d %.2d %s %d %c", hour(t), minute(t), second(t), day(t), monthShortStr(month(t)), year(t), regn);
+  Serial.println(dataString); //kun for testing
   
-  RTC.read(tm);
-  int t = RTC.temperature();
-  int celcius = t / 4.0;
-
-  //Konstruerer og formaterer string av data
-  for(int i = 1; i < 7; i++)
-  {
-    switch(i)
-    {
-      case 1:
-      dataString += format00(tm.Day, delim1);
-      break;
-
-      case 2:
-      dataString += format00(tm.Month, delim1);
-      break;
-
-      case 3:
-      dataString += String(tm.Year + 1970, DEC);
-      dataString += delim3;
-      break;
-
-      case 4:
-      dataString += format00(tm.Hour, delim2);
-      break;
-
-      case 5:
-      dataString += format00(tm.Minute, delim2);
-      break;
-
-      case 6:
-      dataString += format00(tm.Second, delim3);
-      break;
-    }
-  }
-
-  dataString += "Temperatur: ";
-  dataString += String(celcius, DEC);
-  dataString += "C ";
-
-  //sjekker om det er registrert nedbør eller ikke
-  if(alarmCheck) 
-  {
-    dataString += "Nedbør: 0";
-    RTC.clearAlarm(ALARM_2);
-  }
-  else dataString += "Nedbør: 1";
-
   //lagrer data
-  Serial.println(dataString);  //kun for testing
   lagreTilSD(dataString);
 }
 
-String format00(int verdi, char delim)  //formaterer tall under 10 til å vises som 0X
-{
-  String string = "";
-  
-  if(verdi < 10)
-  {
-    string = '0';
-    string += String(verdi, DEC);
-    string += delim;
-  }
-  else 
-  {
-    string += String(verdi, DEC);
-    string += delim;
-  }
-
-  return string;
-}
-
-void lagreTilSD(String dataString)
+void lagreTilSD(char dataString[])
 {
   dataFil = SD.open("datalog.txt", FILE_WRITE);
 
@@ -182,9 +125,33 @@ void lagreTilSD(String dataString)
   else Serial.println("Feil: Kan ikke åpne datalog.txt fra SD-kort");
 }
 
+//testfunksjon for å se at det er data på SD-kortet
+void lesFraSD()
+{
+  dataFil = SD.open("datalog.txt");
+
+  if(dataFil)
+  {
+    Serial.println("datalog.txt: ");
+    while(dataFil.available())
+    {
+      Serial.write(dataFil.read());
+    }
+    dataFil.close();
+  }
+  else Serial.println("Feil: Kan ikke åpne datalog.txt fra SD-kort");
+}
+
 void sendData()
 {
   
+}
+
+void slettData()
+{
+  SD.remove("datalog.txt");
+  if(SD.exists("datalog.txt")) { Serial.println("The file still exists..."); }
+  else Serial.println("File deleted");
 }
 
 void wakeUpAlarm()  //ISR for RTC
@@ -199,7 +166,7 @@ void wakeUpRain()  //ISR for nedbørsmåler
   sleep_disable();
 }
 
-//Henter ut kompileringsdato og tid. Gjør om char strings fra DATE og TIME til INT-verdier som kan gies til tm.
+//Henter ut kompileringsdato og tid. Gjør om char strings fra DATE og TIME til heltallsverdier som kan gies til tm.
 time_t compileTime()
 {
   const time_t FUDGE(10);  //definerer tiden det tar å kompilere koden
