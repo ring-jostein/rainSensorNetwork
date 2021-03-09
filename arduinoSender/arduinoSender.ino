@@ -11,7 +11,6 @@
 SoftwareSerial Serial1(6, 7); //TXD, RXD
 #endif
 
-#define MAX_CLIENTS WIFIESPAT_LINKS_COUNT
 #define interruptPinRTC 2
 #define interruptPinRainGauge 3
 #define chipSelect 10
@@ -102,11 +101,11 @@ void dataLogger(bool alarmCheck)
   if (alarmCheck)
   {
     regn = '0';
+    RTC.clearAlarm(ALARM_2);
   }
   else regn = '1';
 
   sprintf(dataString, "%.2d.%.2d.%d %.2d:%.2d:%.2d %i %c", day(t), month(t), year(t), hour(t), minute(t), second(t), celcius, regn);
-  //sprintf(dataString, "%.2d:%.2d:%.2d %.2d %s %d %c", hour(t), minute(t), second(t), day(t), monthShortStr(month(t)), year(t), regn);
   Serial.println(dataString); //kun for testing
   
   //lagrer data
@@ -150,7 +149,10 @@ void sendData()
 void slettData()
 {
   SD.remove("datalog.txt");
-  if(SD.exists("datalog.txt")) { Serial.println("The file still exists..."); }
+  if(SD.exists("datalog.txt"))
+  {
+    Serial.println("The file still exists...");
+  }
   else Serial.println("File deleted");
 }
 
@@ -177,10 +179,10 @@ time_t compileTime()
   compMon[3] = '\0';
   m = strstr(months, compMon);  //substring fra punktet stringen compMon finnes i months
   
-  //finner heltallet for punktet m starter i months. Ved å dele på tre vil hver måned representeres som et tall fra 0-11. +1 for å få verdier fra 1-12.
+  //finner heltallet for punktet m starter i months. Ved å dele på tre vil hver måned representeres som et heltall fra 0-11. +1 for å få verdier fra 1-12.
   tm.Month = ((m - months) / 3 + 1);  
   
-  //konverter substring fra definert punkt til neste "whitespace" til et heltall.
+  //konverter substring fra definert punkt til et heltall til neste "whitespace".
   tm.Day = atoi(compDate + 4);
   tm.Year = atoi(compDate + 7) - 1970;  //trekker fra 1970 fordi år på RTC er antall år etter 1970. Eks. 2021-1970 = 51
   tm.Hour = atoi(compTime);
