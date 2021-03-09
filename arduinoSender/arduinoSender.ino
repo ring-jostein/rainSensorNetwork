@@ -16,10 +16,11 @@ SoftwareSerial Serial1(6, 7); //TXD, RXD
 #define chipSelect 10
 #define server "192.168.4.1"
 #define fileName "datalog.txt"
+#define errorSD "Feil: Kan ikke åpne datalog.txt fra SD-kort"
+#define sleepMsg "Going to sleep..."
+#define errorServer "Could not establish connection"
 
 tmElements_t tm;
-File dataFil;
-WiFiClient client;
 time_t start;
 
 void setup()
@@ -52,7 +53,7 @@ void setup()
   }
   
   //stiller RTC til dato og tid for kompilering
-  RTC.set(compileTime());
+  //RTC.set(compileTime());
   start = RTC.get();
   
   //Blokk som setter alarmer til kjente verdier
@@ -79,7 +80,7 @@ void loop()
 //setter Arduino i sleepmode og aktiverer interrupt-pinner som vekker den
 void sleepMode()
 {
-  Serial.println("Going to sleep");  //kun for testing
+  Serial.println(sleepMsg);  //kun for testing
   sleep_enable();
   attachInterrupt(digitalPinToInterrupt(interruptPinRTC), wakeUpAlarm, FALLING);
   attachInterrupt(digitalPinToInterrupt(interruptPinRainGauge), wakeUpRain, FALLING);
@@ -102,23 +103,23 @@ void dataLogger(bool alarmCheck)
   }
   else regn = '1';
 
-  //sprintf(dataString, "%.2d.%.2d.%d %.2d:%.2d:%.2d %i %c", day(t), month(t), year(t), hour(t), minute(t), second(t), celcius, regn);
+  sprintf(dataString, "%.2d.%.2d.%d %.2d:%.2d:%.2d %i %c", day(t), month(t), year(t), hour(t), minute(t), second(t), celcius, regn);
   Serial.println(dataString); //kun for testing
 
   //lagrer data
-  //lagreTilSD(dataString);
+  lagreTilSD(dataString);
 }
 
 void lagreTilSD(char dataString[])
 {
-  dataFil = SD.open(fileName, FILE_WRITE);
+  File dataFil = SD.open(fileName, FILE_WRITE);
 
   if(dataFil)
   {
     dataFil.println(dataString);
     dataFil.close();
   }
-  else Serial.println("Feil: Kan ikke åpne datalog.txt fra SD-kort");
+  else Serial.println(errorSD);
 }
 
 void sendData()
@@ -126,9 +127,10 @@ void sendData()
   bool skalJegSende = timer();
   if(skalJegSende)
   {
+    WiFiClient client;
     if(client.connect(server, 2323))
     {
-      dataFil = SD.open(fileName);
+      File dataFil = SD.open(fileName);
       if(dataFil)
       {
         while(dataFil.available())
@@ -139,9 +141,9 @@ void sendData()
         SD.remove(fileName);
         client.flush();
       }
-      else Serial.println("Feil: Kan ikke åpne datalog.txt fra SD-kort");
+      else Serial.println(errorSD);
     }
-    else Serial.println("Could not establish connection");
+    else Serial.println(errorServer);
   }  
 }
 
