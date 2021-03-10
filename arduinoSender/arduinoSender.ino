@@ -30,7 +30,7 @@ void setup()
   pinMode(interruptPinRainGauge, INPUT_PULLUP);
   
   // initialize serial for debugging
-  Serial.begin(2000000);
+  Serial.begin(115200);
   // initialize serial for ESP module
   Serial1.begin(9600);
   // initialize ESP module
