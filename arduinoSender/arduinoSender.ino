@@ -14,7 +14,7 @@ SoftwareSerial Serial1(6, 7); //TXD, RXD
 #define interruptPinRTC 2
 #define interruptPinRainGauge 3
 #define chipSelect 10
-#define server "192.168.4.1"
+#define server "10.0.0.10"
 #define fileName "datalog.txt"
 #define errorSD "Feil: Kan ikke åpne datalog.txt fra SD-kort"
 #define sleepMsg "Going to sleep..."
@@ -104,7 +104,7 @@ void dataLogger(bool alarmCheck)
   else regn = '1';
 
   sprintf(dataString, "%.2d.%.2d.%d %.2d:%.2d:%.2d %i %c", day(t), month(t), year(t), hour(t), minute(t), second(t), celcius, regn);
-  Serial.println(dataString); //kun for testing
+  //Serial.println(dataString); //kun for testing
 
   //lagrer data
   lagreTilSD(dataString);
@@ -143,7 +143,7 @@ void sendData()
       }
       else Serial.println(errorSD);
     }
-    else Serial.println(errorServer);
+    //else Serial.println(errorServer);
   }  
 }
 
@@ -152,7 +152,7 @@ bool timer()
   bool check = false;
   time_t naa = RTC.get();
   Serial.println(naa-start);
-  if(naa - start >= 60) //endres til 300 for å få hvert 5. minutt
+  if(naa - start >= 30) //endres til 300 for å få hvert 5. minutt
   {
     check = true;
     start = RTC.get();
