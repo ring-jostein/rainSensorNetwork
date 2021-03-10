@@ -22,6 +22,7 @@ SoftwareSerial Serial1(6, 7); //TXD, RXD
 
 tmElements_t tm;
 time_t start;
+File dataFil;
 
 void setup()
 {
@@ -36,24 +37,13 @@ void setup()
   // initialize ESP module
   WiFi.init(&Serial1);
   
-  if (WiFi.status() == WL_NO_MODULE) 
-  {
-    // don't continue
-    while (true);
-  }
-
-  // waiting for connection to Wifi network set with the SetupWiFiConnection sketch
+  if (WiFi.status() == WL_NO_MODULE) {while (true);}  // don't continue
+  
   while (WiFi.status() != WL_CONNECTED) {}
 
   //Initialiserer SD-kort og sjekker for feil
-  if(!SD.begin(chipSelect))
-  {
-    // don't continue
-    while (true);
-  }
-  
-  //stiller RTC til dato og tid for kompilering
-  //RTC.set(compileTime());
+  if(!SD.begin(chipSelect)) {while (true);}  // don't continue
+
   start = RTC.get();
   
   //Blokk som setter alarmer til kjente verdier
@@ -74,7 +64,7 @@ void loop()
 {
   sleepMode();
   dataLogger(RTC.checkAlarm(ALARM_2));
-  sendData();
+  //lesFraSD();
 }
 
 //setter Arduino i sleepmode og aktiverer interrupt-pinner som vekker den
@@ -104,24 +94,39 @@ void dataLogger(bool alarmCheck)
   else regn = '1';
 
   sprintf(dataString, "%.2d.%.2d.%d %.2d:%.2d:%.2d %i %c", day(t), month(t), year(t), hour(t), minute(t), second(t), celcius, regn);
-  //Serial.println(dataString); //kun for testing
-
+  Serial.println(dataString);
+  
   //lagrer data
-  lagreTilSD(dataString);
+  //lagreTilSD(dataString);
+  sendData(dataString);
 }
 
 void lagreTilSD(char dataString[])
 {
-  File dataFil = SD.open(fileName, FILE_WRITE);
+  dataFil = SD.open(fileName, FILE_WRITE);
 
   if(dataFil)
   {
     dataFil.println(dataString);
     dataFil.close();
   }
-  else Serial.println(errorSD);
 }
 
+void sendData(char dataString[])
+{
+  bool skalJegSende = timer();
+  if(skalJegSende)
+  {
+    WiFiClient client;
+    if(client.connect(server, 2323))
+    {
+      delay(1000);
+      client.println(dataString);
+    }
+    else Serial.println(errorServer);
+  }  
+}
+/*
 void sendData()
 {
   bool skalJegSende = timer();
@@ -130,29 +135,29 @@ void sendData()
     WiFiClient client;
     if(client.connect(server, 2323))
     {
-      File dataFil = SD.open(fileName);
+      dataFil = SD.open(fileName);
       if(dataFil)
       {
         while(dataFil.available())
         {
-          client.println(dataFil.read());
+          byte buffer[40];
+          int count = dataFil.read(buffer, 80);
+          client.write(buffer, count);
         }
         dataFil.close();
         SD.remove(fileName);
-        client.flush();
       }
-      else Serial.println(errorSD);
     }
-    //else Serial.println(errorServer);
   }  
 }
+*/
 
 bool timer()
 {
   bool check = false;
   time_t naa = RTC.get();
   Serial.println(naa-start);
-  if(naa - start >= 30) //endres til 300 for å få hvert 5. minutt
+  if(naa - start >= 15) //endres til 300 for å få hvert 5. minutt
   {
     check = true;
     start = RTC.get();
@@ -172,27 +177,18 @@ void wakeUpRain()  //ISR for nedbørsmåler
   sleep_disable();
 }
 
-//Henter ut kompileringsdato og tid. Gjør om char strings fra DATE og TIME til heltallsverdier som kan gies til tm.
-time_t compileTime()
+//testfunksjon for å se at det er data på SD-kortet
+void lesFraSD()
 {
-  const time_t FUDGE(10);  //definerer tiden det tar å kompilere koden
-  const char *compDate = __DATE__, *compTime = __TIME__, *months = "JanFebMarAprMayJunJulAugSepOctNovDec";
-  char compMon[4], *m;
-  
-  strncpy(compMon, compDate, 3); //kopierer de tre første karakterene fra compDate inn i compMon (måned i trebokstavsforkortelse)
-  compMon[3] = '\0';
-  m = strstr(months, compMon);  //substring fra punktet stringen compMon finnes i months
-  
-  //finner heltallet for punktet m starter i months. Ved å dele på tre vil hver måned representeres som et heltall fra 0-11. +1 for å få verdier fra 1-12.
-  tm.Month = ((m - months) / 3 + 1);  
-  
-  //konverter substring fra definert punkt til et heltall til neste "whitespace".
-  tm.Day = atoi(compDate + 4);
-  tm.Year = atoi(compDate + 7) - 1970;  //trekker fra 1970 fordi år på RTC er antall år etter 1970. Eks. 2021-1970 = 51
-  tm.Hour = atoi(compTime);
-  tm.Minute = atoi(compTime + 3);
-  tm.Second = atoi(compTime + 6);
-  
-  time_t t = makeTime(tm);  //tid t er alle elementene tm
-  return t + FUDGE;  //legger til fudge for å kompensere for tiden det tar å kompilere
+  dataFil = SD.open("datalog.txt");
+
+  if(dataFil)
+  {
+    //Serial.println("datalog.txt: ");
+    while(dataFil.available())
+    {
+      Serial.write(dataFil.read());
+    }
+    dataFil.close();
+  }
 }
