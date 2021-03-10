@@ -11,13 +11,17 @@
 SoftwareSerial Serial1(6, 7); //TXD, RXD
 #endif
 
-#define MAX_CLIENTS WIFIESPAT_LINKS_COUNT
 #define interruptPinRTC 2
 #define interruptPinRainGauge 3
 #define chipSelect 10
+#define server "192.168.4.1"
+#define fileName "datalog.txt"
+#define errorSD "Feil: Kan ikke åpne datalog.txt fra SD-kort"
+#define sleepMsg "Going to sleep..."
+#define errorServer "Could not establish connection"
 
 tmElements_t tm;
-File dataFil;
+time_t start;
 
 void setup()
 {
@@ -26,7 +30,7 @@ void setup()
   pinMode(interruptPinRainGauge, INPUT_PULLUP);
   
   // initialize serial for debugging
-  Serial.begin(2000000);
+  Serial.begin(115200);
   // initialize serial for ESP module
   Serial1.begin(9600);
   // initialize ESP module
@@ -34,27 +38,23 @@ void setup()
   
   if (WiFi.status() == WL_NO_MODULE) 
   {
-    //Serial.println("Communication with WiFi module failed!");
     // don't continue
     while (true);
   }
 
   // waiting for connection to Wifi network set with the SetupWiFiConnection sketch
-  //Serial.println("Waiting for connection to WiFi");
   while (WiFi.status() != WL_CONNECTED) {}
-  //Serial.println("Connected");
 
   //Initialiserer SD-kort og sjekker for feil
-  //Serial.println("Initialiserer SD-kort...");
   if(!SD.begin(chipSelect))
   {
-    //Serial.println("Initialisering feilet, sjekk SD-kort!");
+    // don't continue
     while (true);
   }
-  //else Serial.println("Initialisering ferdig.");
   
   //stiller RTC til dato og tid for kompilering
-  RTC.set(compileTime());
+  //RTC.set(compileTime());
+  start = RTC.get();
   
   //Blokk som setter alarmer til kjente verdier
   RTC.setAlarm(ALM1_MATCH_DATE, 0, 0, 0, 1);
@@ -74,21 +74,18 @@ void loop()
 {
   sleepMode();
   dataLogger(RTC.checkAlarm(ALARM_2));
-  lesFraSD();
-  //slettData();
-  //sendData();
+  sendData();
 }
 
 //setter Arduino i sleepmode og aktiverer interrupt-pinner som vekker den
 void sleepMode()
 {
-  Serial.println("Going to sleep...");  //kun for testing
+  Serial.println(sleepMsg);  //kun for testing
   sleep_enable();
   attachInterrupt(digitalPinToInterrupt(interruptPinRTC), wakeUpAlarm, FALLING);
   attachInterrupt(digitalPinToInterrupt(interruptPinRainGauge), wakeUpRain, FALLING);
   set_sleep_mode(SLEEP_MODE_PWR_DOWN);
   sleep_cpu();
-  Serial.println("Waking up...");  //kun for testing
 }
 
 //funksjon for å konstruere nødvendig data i en String og lagre disse til SD-kort
@@ -102,56 +99,65 @@ void dataLogger(bool alarmCheck)
   if (alarmCheck)
   {
     regn = '0';
+    RTC.clearAlarm(ALARM_2);
   }
   else regn = '1';
 
   sprintf(dataString, "%.2d.%.2d.%d %.2d:%.2d:%.2d %i %c", day(t), month(t), year(t), hour(t), minute(t), second(t), celcius, regn);
-  //sprintf(dataString, "%.2d:%.2d:%.2d %.2d %s %d %c", hour(t), minute(t), second(t), day(t), monthShortStr(month(t)), year(t), regn);
   Serial.println(dataString); //kun for testing
-  
+
   //lagrer data
   lagreTilSD(dataString);
 }
 
 void lagreTilSD(char dataString[])
 {
-  dataFil = SD.open("datalog.txt", FILE_WRITE);
+  File dataFil = SD.open(fileName, FILE_WRITE);
 
   if(dataFil)
   {
     dataFil.println(dataString);
     dataFil.close();
   }
-  else Serial.println("Feil: Kan ikke åpne datalog.txt fra SD-kort");
-}
-
-//testfunksjon for å se at det er data på SD-kortet
-void lesFraSD()
-{
-  dataFil = SD.open("datalog.txt");
-
-  if(dataFil)
-  {
-    Serial.println("datalog.txt: ");
-    while(dataFil.available())
-    {
-      Serial.write(dataFil.read());
-    }
-    dataFil.close();
-  }
-  else Serial.println("Feil: Kan ikke åpne datalog.txt fra SD-kort");
+  else Serial.println(errorSD);
 }
 
 void sendData()
 {
-  
+  bool skalJegSende = timer();
+  if(skalJegSende)
+  {
+    WiFiClient client;
+    if(client.connect(server, 2323))
+    {
+      File dataFil = SD.open(fileName);
+      if(dataFil)
+      {
+        while(dataFil.available())
+        {
+          client.println(dataFil.read());
+        }
+        dataFil.close();
+        SD.remove(fileName);
+        client.flush();
+      }
+      else Serial.println(errorSD);
+    }
+    else Serial.println(errorServer);
+  }  
 }
 
-void slettData()
+bool timer()
 {
-  SD.remove("datalog.txt");
-  if(SD.exists("datalog.txt")) { Serial.println("The file still exists..."); }
-  else Serial.println("File deleted");
+  bool check = false;
+  time_t naa = RTC.get();
+  Serial.println(naa-start);
+  if(naa - start >= 60) //endres til 300 for å få hvert 5. minutt
+  {
+    check = true;
+    start = RTC.get();
+  }
+  return check;
 }
 
 void wakeUpAlarm()  //ISR for RTC
@@ -177,10 +183,10 @@ time_t compileTime()
   compMon[3] = '\0';
   m = strstr(months, compMon);  //substring fra punktet stringen compMon finnes i months
   
-  //finner heltallet for punktet m starter i months. Ved å dele på tre vil hver måned representeres som et tall fra 0-11. +1 for å få verdier fra 1-12.
+  //finner heltallet for punktet m starter i months. Ved å dele på tre vil hver måned representeres som et heltall fra 0-11. +1 for å få verdier fra 1-12.
   tm.Month = ((m - months) / 3 + 1);  
   
-  //konverter substring fra definert punkt til neste "whitespace" til et heltall.
+  //konverter substring fra definert punkt til et heltall til neste "whitespace".
   tm.Day = atoi(compDate + 4);
   tm.Year = atoi(compDate + 7) - 1970;  //trekker fra 1970 fordi år på RTC er antall år etter 1970. Eks. 2021-1970 = 51
   tm.Hour = atoi(compTime);
