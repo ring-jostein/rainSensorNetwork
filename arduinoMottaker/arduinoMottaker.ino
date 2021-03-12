@@ -7,44 +7,43 @@
 SoftwareSerial Serial1(6, 7); //TXD, RXD
 #endif
 
-#define maxClients 4
-#define chipSelect 10
+#define maxClients 4  //ESP-01 håndterer ikke fler enn 4 klienter
+#define chipSelect 10  //pinne for kommunikasjon med SD-kort
 #define fileName "datalog.txt"
 #define errorSD "Feil: Kan ikke åpne datalog.txt fra SD-kort"
 
-// telnet defaults to port 2323
 WiFiServer server(2323);
 WiFiClient clients[maxClients];
 
 void setup() 
 {
-  Serial.begin(115200);   // initialize serial for debugging
-  Serial1.begin(9600);    // initialize serial for ESP module
-  WiFi.init(&Serial1);    // initialize ESP module
+  Serial.begin(115200);   // initialiserer serial for debugging
+  Serial1.begin(9600);    // initialiserer serial for WiFi
+  WiFi.init(&Serial1);    // initialiserer WiFi-modul
 
-  // check for the presence of the shield
+  // Tester kommunikasjon med WiFi-modul
   if (WiFi.status() == WL_NO_SHIELD) 
   {
-    Serial.println("WiFi shield not present");
+    Serial.println(F("Feil: Finner ikke WiFi-modul"));
     while (true); // don't continue
   }
 
   //Initialiserer SD-kort og sjekker for feil
   if(!SD.begin(chipSelect))
   {
-    Serial.println("SD card not working");
+    Serial.println(F("Feil: Finner ikke SD-kort"));
     while (true); // don't continue
   }
   
-  // attempt to connect to WiFi network
+  // Starter aksesspunkt
   WiFi.beginAP();
 
-  // start listening for clients
+  // starter server
   server.begin(maxClients);
 }
 
 void loop() {
-  // check for any new client connecting, and say hello (before any incoming data)
+  // Leter etter nye klienter og legger dem til et klientarray
   WiFiClient newClient = server.accept();
   if (newClient) 
   {
@@ -52,9 +51,9 @@ void loop() {
     {
       if (!clients[i]) 
       {
-        Serial.print("We have a new client #");
+        Serial.print(F("Ny klient #"));
         Serial.println(i);
-        newClient.print("Hello, client number: ");
+        newClient.print(F("Hello, client number: "));
         newClient.println(i);
         clients[i] = newClient;
         break;
@@ -62,12 +61,12 @@ void loop() {
     }
   }
 
-  // check for incoming data from all clients
+  // Sjekker innkommende data fra klienter
   for (byte i=0; i < maxClients; i++) 
   {
     if (clients[i] && clients[i].available() > 0) 
     {
-      // read bytes from a client
+      // les bytes fra klient
       byte buffer[80];
       int count = clients[i].read(buffer, 80);
       Serial.write(buffer, count);  //kun for testing
@@ -76,15 +75,15 @@ void loop() {
       lagreTilSD(buffer, count);
       //lesFraSD();
       
-      //print confirmation
-      clients[i].println("OK");
+      //print bekreftelse
+      clients[i].println(F("OK"));
     }
   }
 
-  // stop any clients which disconnect
+  // Fjerner klienter som kobler av fra array
   for (byte i=0; i < maxClients; i++) {
     if (clients[i] && !clients[i].connected()) {
-      Serial.print("disconnect client #");
+      Serial.print(F("Kobler fra klient #"));
       Serial.println(i);
       clients[i].stop();
     }
@@ -100,7 +99,7 @@ void lagreTilSD(byte buffer[80], int count)
     dataFil.write(buffer, count);
     dataFil.close();
   }
-  else Serial.println(errorSD);
+  else Serial.println(F(errorSD));
 }
 
 void lesFraSD()
@@ -116,5 +115,5 @@ void lesFraSD()
     }
     dataFil.close();
   }
-  else Serial.println(errorSD);
+  else Serial.println(F(errorSD));
 }
