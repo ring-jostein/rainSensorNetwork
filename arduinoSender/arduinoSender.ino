@@ -17,8 +17,6 @@ SoftwareSerial Serial1(6, 7); //TXD, RXD
 #define server "10.0.0.10"
 #define fileName "datalog.txt"
 #define errorSD "Feil: Kan ikke åpne datalog.txt fra SD-kort"
-#define sleepMsg "Going to sleep..."
-#define errorServer "Could not establish connection"
 
 tmElements_t tm;
 time_t start;
@@ -37,12 +35,29 @@ void setup()
   // initialize ESP module
   WiFi.init(&Serial1);
   
-  if (WiFi.status() == WL_NO_MODULE) {while (true);}  // don't continue
+  if (WiFi.status() == WL_NO_MODULE) 
+  {
+    // don't continue
+    Serial.println(F("Feil: Ingen tilkobling til WiFi-modul"));
+    while (true);
+  }
   
-  while (WiFi.status() != WL_CONNECTED) {}
+  Serial.print(F("Kobler opp til AP"));
+  while (WiFi.status() != WL_CONNECTED) 
+  {
+    Serial.print(F("."));
+    delay(1000);
+  }
+  Serial.println(F("Fullført"));
 
   //Initialiserer SD-kort og sjekker for feil
-  if(!SD.begin(chipSelect)) {while (true);}  // don't continue
+  if(!SD.begin(chipSelect)) 
+  {
+    // don't continue
+    Serial.println(F("Feil: Finner ikke SD-kort"));
+    while (true);
+  }
+  Serial.println(F("SD-kort initialisert"));
 
   start = RTC.get();
   
@@ -64,13 +79,14 @@ void loop()
 {
   sleepMode();
   dataLogger(RTC.checkAlarm(ALARM_2));
-  //lesFraSD();
+  lesFraSD();
+  sendData();
 }
 
 //setter Arduino i sleepmode og aktiverer interrupt-pinner som vekker den
 void sleepMode()
 {
-  Serial.println(sleepMsg);  //kun for testing
+  Serial.println(F("Aktiverer sleep mode"));  //kun for testing
   sleep_enable();
   attachInterrupt(digitalPinToInterrupt(interruptPinRTC), wakeUpAlarm, FALLING);
   attachInterrupt(digitalPinToInterrupt(interruptPinRainGauge), wakeUpRain, FALLING);
@@ -97,8 +113,7 @@ void dataLogger(bool alarmCheck)
   Serial.println(dataString);
   
   //lagrer data
-  //lagreTilSD(dataString);
-  sendData(dataString);
+  lagreTilSD(dataString);
 }
 
 void lagreTilSD(char dataString[])
@@ -110,23 +125,9 @@ void lagreTilSD(char dataString[])
     dataFil.println(dataString);
     dataFil.close();
   }
+  else Serial.println(F(errorSD));
 }
 
-void sendData(char dataString[])
-{
-  bool skalJegSende = timer();
-  if(skalJegSende)
-  {
-    WiFiClient client;
-    if(client.connect(server, 2323))
-    {
-      delay(1000);
-      client.println(dataString);
-    }
-    else Serial.println(errorServer);
-  }  
-}
-/*
 void sendData()
 {
   bool skalJegSende = timer();
@@ -140,17 +141,16 @@ void sendData()
       {
         while(dataFil.available())
         {
-          byte buffer[40];
-          int count = dataFil.read(buffer, 80);
-          client.write(buffer, count);
+          client.write(dataFil.read());
         }
         dataFil.close();
         SD.remove(fileName);
       }
+      else Serial.println(F(errorSD));
     }
+    else Serial.println(F("Feil: Oppkobling til server mislyktes"));
   }  
 }
-*/
 
 bool timer()
 {
@@ -180,15 +180,16 @@ void wakeUpRain()  //ISR for nedbørsmåler
 //testfunksjon for å se at det er data på SD-kortet
 void lesFraSD()
 {
-  dataFil = SD.open("datalog.txt");
+  dataFil = SD.open(fileName);
 
   if(dataFil)
   {
-    //Serial.println("datalog.txt: ");
+    Serial.println("datalog.txt: ");
     while(dataFil.available())
     {
       Serial.write(dataFil.read());
     }
     dataFil.close();
   }
+  else Serial.println(F(errorSD));
 }
