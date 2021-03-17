@@ -14,13 +14,12 @@ SoftwareSerial Serial1(6, 7); //TXD, RXD
 #define interruptPinRTC 2
 #define interruptPinRainGauge 3
 #define chipSelect 10
-#define server "10.0.0.10"
+#define server "192.168.1.78"
 #define fileName "datalog.txt"
 #define errorSD "Feil: Kan ikke åpne datalog.txt fra SD-kort"
 
 tmElements_t tm;
 time_t start;
-File dataFil;
 
 void setup()
 {
@@ -79,7 +78,7 @@ void loop()
 {
   sleepMode();
   dataLogger(RTC.checkAlarm(ALARM_2));
-  lesFraSD();
+  //lesFraSD();  //kun for testing
   sendData();
 }
 
@@ -118,7 +117,7 @@ void dataLogger(bool alarmCheck)
 
 void lagreTilSD(char dataString[])
 {
-  dataFil = SD.open(fileName, FILE_WRITE);
+  File dataFil = SD.open(fileName, FILE_WRITE);
 
   if(dataFil)
   {
@@ -136,7 +135,7 @@ void sendData()
     WiFiClient client;
     if(client.connect(server, 2323))
     {
-      dataFil = SD.open(fileName);
+      File dataFil = SD.open(fileName);
       if(dataFil)
       {
         while(dataFil.available())
@@ -180,7 +179,7 @@ void wakeUpRain()  //ISR for nedbørsmåler
 //testfunksjon for å se at det er data på SD-kortet
 void lesFraSD()
 {
-  dataFil = SD.open(fileName);
+  File dataFil = SD.open(fileName);
 
   if(dataFil)
   {
