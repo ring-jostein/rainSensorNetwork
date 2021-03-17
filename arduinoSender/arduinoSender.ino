@@ -20,6 +20,7 @@ SoftwareSerial Serial1(6, 7); //TXD, RXD
 
 tmElements_t tm;
 time_t start;
+WiFiClient client;
 
 void setup()
 {
@@ -48,6 +49,17 @@ void setup()
     delay(1000);
   }
   Serial.println(F("Fullført"));
+
+  Serial.println(F("Kobler til server"));
+  if (client.connect(server, 2323))
+  {
+    Serial.println(F("Koblet til server"));
+  }
+  else
+  {
+    Serial.println(F("Feil: Kan ikke koble til server"));
+    while (true);
+  }
 
   //Initialiserer SD-kort og sjekker for feil
   if(!SD.begin(chipSelect)) 
@@ -78,7 +90,7 @@ void loop()
 {
   sleepMode();
   dataLogger(RTC.checkAlarm(ALARM_2));
-  //lesFraSD();  //kun for testing
+  lesFraSD();  //kun for testing
   sendData();
 }
 
@@ -117,6 +129,7 @@ void dataLogger(bool alarmCheck)
 
 void lagreTilSD(char dataString[])
 {
+  Serial.println(FreeRam());
   File dataFil = SD.open(fileName, FILE_WRITE);
 
   if(dataFil)
@@ -132,22 +145,18 @@ void sendData()
   bool skalJegSende = timer();
   if(skalJegSende)
   {
-    WiFiClient client;
-    if(client.connect(server, 2323))
+    Serial.println(FreeRam());
+    File dataFil = SD.open(fileName);
+    if(dataFil)
     {
-      File dataFil = SD.open(fileName);
-      if(dataFil)
+      while(dataFil.available())
       {
-        while(dataFil.available())
-        {
-          client.write(dataFil.read());
-        }
-        dataFil.close();
-        SD.remove(fileName);
+        client.write(dataFil.read());
       }
-      else Serial.println(F(errorSD));
+      dataFil.close();
+      SD.remove(fileName);
     }
-    else Serial.println(F("Feil: Oppkobling til server mislyktes"));
+    else Serial.println(F(errorSD));
   }  
 }
 
