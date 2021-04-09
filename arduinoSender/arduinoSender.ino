@@ -14,14 +14,13 @@ SoftwareSerial Serial1(6, 7); //TXD, RXD
 #define interruptPinRTC 2
 #define interruptPinRainGauge 3
 #define chipSelect 10
-#define server "10.0.0.10"
+#define server "192.168.1.78"
 #define fileName "datalog.txt"
 #define errorSD "Feil: Kan ikke åpne datalog.txt fra SD-kort"
-#define sleepMsg "Going to sleep..."
-#define errorServer "Could not establish connection"
 
 tmElements_t tm;
 time_t start;
+WiFiClient client;
 
 void setup()
 {
@@ -39,21 +38,38 @@ void setup()
   if (WiFi.status() == WL_NO_MODULE) 
   {
     // don't continue
-    while (true);
-  }
-
-  // waiting for connection to Wifi network set with the SetupWiFiConnection sketch
-  while (WiFi.status() != WL_CONNECTED) {}
-
-  //Initialiserer SD-kort og sjekker for feil
-  if(!SD.begin(chipSelect))
-  {
-    // don't continue
+    Serial.println(F("Feil: Ingen tilkobling til WiFi-modul"));
     while (true);
   }
   
-  //stiller RTC til dato og tid for kompilering
-  //RTC.set(compileTime());
+  Serial.print(F("Kobler opp til AP"));
+  while (WiFi.status() != WL_CONNECTED) 
+  {
+    Serial.print(F("."));
+    delay(1000);
+  }
+  Serial.println(F("Fullført"));
+
+  Serial.println(F("Kobler til server"));
+  if (client.connect(server, 2323))
+  {
+    Serial.println(F("Koblet til server"));
+  }
+  else
+  {
+    Serial.println(F("Feil: Kan ikke koble til server"));
+    while (true);
+  }
+
+  //Initialiserer SD-kort og sjekker for feil
+  if(!SD.begin(chipSelect)) 
+  {
+    // don't continue
+    Serial.println(F("Feil: Finner ikke SD-kort"));
+    while (true);
+  }
+  Serial.println(F("SD-kort initialisert"));
+
   start = RTC.get();
   
   //Blokk som setter alarmer til kjente verdier
@@ -74,13 +90,14 @@ void loop()
 {
   sleepMode();
   dataLogger(RTC.checkAlarm(ALARM_2));
+  lesFraSD();  //kun for testing
   sendData();
 }
 
 //setter Arduino i sleepmode og aktiverer interrupt-pinner som vekker den
 void sleepMode()
 {
-  Serial.println(sleepMsg);  //kun for testing
+  Serial.println(F("Aktiverer sleep mode"));  //kun for testing
   sleep_enable();
   attachInterrupt(digitalPinToInterrupt(interruptPinRTC), wakeUpAlarm, FALLING);
   attachInterrupt(digitalPinToInterrupt(interruptPinRainGauge), wakeUpRain, FALLING);
@@ -104,14 +121,15 @@ void dataLogger(bool alarmCheck)
   else regn = '1';
 
   sprintf(dataString, "%.2d.%.2d.%d %.2d:%.2d:%.2d %i %c", day(t), month(t), year(t), hour(t), minute(t), second(t), celcius, regn);
-  //Serial.println(dataString); //kun for testing
-
+  Serial.println(dataString);
+  
   //lagrer data
   lagreTilSD(dataString);
 }
 
 void lagreTilSD(char dataString[])
 {
+  Serial.println(FreeRam());
   File dataFil = SD.open(fileName, FILE_WRITE);
 
   if(dataFil)
@@ -119,7 +137,7 @@ void lagreTilSD(char dataString[])
     dataFil.println(dataString);
     dataFil.close();
   }
-  else Serial.println(errorSD);
+  else Serial.println(F(errorSD));
 }
 
 void sendData()
@@ -127,23 +145,18 @@ void sendData()
   bool skalJegSende = timer();
   if(skalJegSende)
   {
-    WiFiClient client;
-    if(client.connect(server, 2323))
+    Serial.println(FreeRam());
+    File dataFil = SD.open(fileName);
+    if(dataFil)
     {
-      File dataFil = SD.open(fileName);
-      if(dataFil)
+      while(dataFil.available())
       {
-        while(dataFil.available())
-        {
-          client.println(dataFil.read());
-        }
-        dataFil.close();
-        SD.remove(fileName);
-        client.flush();
+        client.write(dataFil.read());
       }
-      else Serial.println(errorSD);
+      dataFil.close();
+      SD.remove(fileName);
     }
-    //else Serial.println(errorServer);
+    else Serial.println(F(errorSD));
   }  
 }
 
@@ -152,7 +165,7 @@ bool timer()
   bool check = false;
   time_t naa = RTC.get();
   Serial.println(naa-start);
-  if(naa - start >= 30) //endres til 300 for å få hvert 5. minutt
+  if(naa - start >= 15) //endres til 300 for å få hvert 5. minutt
   {
     check = true;
     start = RTC.get();
@@ -172,27 +185,19 @@ void wakeUpRain()  //ISR for nedbørsmåler
   sleep_disable();
 }
 
-//Henter ut kompileringsdato og tid. Gjør om char strings fra DATE og TIME til heltallsverdier som kan gies til tm.
-time_t compileTime()
+//testfunksjon for å se at det er data på SD-kortet
+void lesFraSD()
 {
-  const time_t FUDGE(10);  //definerer tiden det tar å kompilere koden
-  const char *compDate = __DATE__, *compTime = __TIME__, *months = "JanFebMarAprMayJunJulAugSepOctNovDec";
-  char compMon[4], *m;
-  
-  strncpy(compMon, compDate, 3); //kopierer de tre første karakterene fra compDate inn i compMon (måned i trebokstavsforkortelse)
-  compMon[3] = '\0';
-  m = strstr(months, compMon);  //substring fra punktet stringen compMon finnes i months
-  
-  //finner heltallet for punktet m starter i months. Ved å dele på tre vil hver måned representeres som et heltall fra 0-11. +1 for å få verdier fra 1-12.
-  tm.Month = ((m - months) / 3 + 1);  
-  
-  //konverter substring fra definert punkt til et heltall til neste "whitespace".
-  tm.Day = atoi(compDate + 4);
-  tm.Year = atoi(compDate + 7) - 1970;  //trekker fra 1970 fordi år på RTC er antall år etter 1970. Eks. 2021-1970 = 51
-  tm.Hour = atoi(compTime);
-  tm.Minute = atoi(compTime + 3);
-  tm.Second = atoi(compTime + 6);
-  
-  time_t t = makeTime(tm);  //tid t er alle elementene tm
-  return t + FUDGE;  //legger til fudge for å kompensere for tiden det tar å kompilere
+  File dataFil = SD.open(fileName);
+
+  if(dataFil)
+  {
+    Serial.println("datalog.txt: ");
+    while(dataFil.available())
+    {
+      Serial.write(dataFil.read());
+    }
+    dataFil.close();
+  }
+  else Serial.println(F(errorSD));
 }

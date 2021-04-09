@@ -1,73 +1,110 @@
-#include <WiFiEspAT.h>
+#include <SPI.h>
+#include <WiFiNINA.h>
 #include <SD.h>
 
-// Emulate Serial1 on pins 6/7 if not present
-#ifndef HAVE_HWSERIAL1
-#include "SoftwareSerial.h"
-SoftwareSerial Serial1(6, 7); //TXD, RXD
-#endif
-
-#define maxClients 4
-#define chipSelect 10
+//#define maxClients 4  //ESP-01 håndterer ikke fler enn 4 klienter
+#define chipSelect 4  //pinne for kommunikasjon med SD-kort
 #define fileName "datalog.txt"
 #define errorSD "Feil: Kan ikke åpne datalog.txt fra SD-kort"
+#define ssid "abc123"
+#define pass "12345678"
 
-// telnet defaults to port 2323
+int status = WL_IDLE_STATUS;
+
 WiFiServer server(2323);
-WiFiClient clients[maxClients];
+//WiFiClient clients[maxClients];
 
 void setup() 
 {
-  Serial.begin(115200);   // initialize serial for debugging
-  Serial1.begin(9600);    // initialize serial for ESP module
-  WiFi.init(&Serial1);    // initialize ESP module
+  Serial.begin(115200);   // initialiserer serial for debugging
 
-  // check for the presence of the shield
+  // Tester kommunikasjon med WiFi-modul
   if (WiFi.status() == WL_NO_SHIELD) 
   {
-    Serial.println("WiFi shield not present");
+    Serial.println(F("Feil: Finner ikke WiFi-modul"));
     while (true); // don't continue
   }
 
   //Initialiserer SD-kort og sjekker for feil
   if(!SD.begin(chipSelect))
   {
-    Serial.println("SD card not working");
+    Serial.println(F("Feil: Finner ikke SD-kort"));
     while (true); // don't continue
   }
   
-  // attempt to connect to WiFi network
-  WiFi.beginAP();
+  // Starter aksesspunkt
+  Serial.print("Creating access point named: ");
+  Serial.println(ssid);
 
-  // start listening for clients
-  server.begin(maxClients);
+  status = WiFi.beginAP(ssid, pass);
+  if (status != WL_AP_LISTENING) 
+  {
+    Serial.println("Creating access point failed");
+    // don't continue
+    while (true);
+  }
+
+  // wait 10 seconds for connection:
+  delay(10000);
+
+  // starter server
+  server.begin();
+  Serial.println(F("Server etablert"));
+
+  // print status
+  printWiFiStatus();
 }
 
-void loop() {
-  // check for any new client connecting, and say hello (before any incoming data)
-  WiFiClient newClient = server.accept();
+void loop() 
+{
+  // Leter etter nye klienter og legger dem til et klientarray
+  WiFiClient client = server.available();
+
+  if (client)
+  {
+    Serial.println(F("Ny klient"));
+    while (client.connected())
+    {
+      if (client.available())
+      {
+        byte buffer[80];
+        int count = client.read(buffer, 80);
+        Serial.write(buffer, count);  //kun for testing
+        Serial.println();  //kun for testing
+  
+        lagreTilSD(buffer, count);
+        lesFraSD();
+      }
+    }
+    // close the connection:
+    client.stop();
+    Serial.println("client disconnected");
+  }
+
+  /*
   if (newClient) 
   {
     for (byte i=0; i < maxClients; i++) 
     {
       if (!clients[i]) 
       {
-        Serial.print("We have a new client #");
+        Serial.print(F("Ny klient #"));
         Serial.println(i);
-        newClient.print("Hello, client number: ");
+        newClient.print(F("Hello, client number: "));
         newClient.println(i);
         clients[i] = newClient;
         break;
       }
     }
   }
+  
 
-  // check for incoming data from all clients
+  // Sjekker innkommende data fra klienter
   for (byte i=0; i < maxClients; i++) 
   {
     if (clients[i] && clients[i].available() > 0) 
     {
-      // read bytes from a client
+      // les bytes fra klient
       byte buffer[80];
       int count = clients[i].read(buffer, 80);
       Serial.write(buffer, count);  //kun for testing
@@ -76,19 +113,32 @@ void loop() {
       lagreTilSD(buffer, count);
       //lesFraSD();
       
-      //print confirmation
-      clients[i].println("OK");
+      //print bekreftelse
+      clients[i].println(F("OK"));
     }
   }
 
-  // stop any clients which disconnect
+  // Fjerner klienter som kobler av fra array
   for (byte i=0; i < maxClients; i++) {
     if (clients[i] && !clients[i].connected()) {
-      Serial.print("disconnect client #");
+      Serial.print(F("Kobler fra klient #"));
       Serial.println(i);
       clients[i].stop();
     }
   }
+  */
+}
+
+void printWiFiStatus() 
+{
+  // Print SSID for aksesspunkt
+  Serial.print("SSID: ");
+  Serial.println(WiFi.SSID());
+
+  //IP addresse for WiFi
+  IPAddress ip = WiFi.localIP();
+  Serial.print("IP Address: ");
+  Serial.println(ip);
 }
 
 void lagreTilSD(byte buffer[80], int count)
@@ -100,7 +150,7 @@ void lagreTilSD(byte buffer[80], int count)
     dataFil.write(buffer, count);
     dataFil.close();
   }
-  else Serial.println(errorSD);
+  else Serial.println(F(errorSD));
 }
 
 void lesFraSD()
@@ -116,5 +166,5 @@ void lesFraSD()
     }
     dataFil.close();
   }
-  else Serial.println(errorSD);
+  else Serial.println(F(errorSD));
 }
