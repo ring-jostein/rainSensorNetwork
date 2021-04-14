@@ -11,7 +11,7 @@
 int status = WL_IDLE_STATUS;
 
 WiFiServer server(2323);
-//WiFiClient clients[maxClients];
+WiFiClient clients[4];
 
 void setup() 
 {
@@ -53,7 +53,7 @@ void setup()
 void loop() 
 {
   WiFiClient client = server.available();
-
+  
   if (client)
   {
     //Serial.println(F("Ny klient"));
@@ -64,62 +64,13 @@ void loop()
         byte buffer[160];
         int count = client.read(buffer, 160);
         lagreTilSD(buffer, count);
-        
+        Serial.write(buffer, count);
       }
     }
     //lukker koblingen:
     client.stop();
     Serial.println("Klient frakoblet");
   }
-  
-  //lesFraSD();
-
-  /*
-  if (newClient) 
-  {
-    for (byte i=0; i < maxClients; i++) 
-    {
-      if (!clients[i]) 
-      {
-        Serial.print(F("Ny klient #"));
-        Serial.println(i);
-        newClient.print(F("Hello, client number: "));
-        newClient.println(i);
-        clients[i] = newClient;
-        break;
-      }
-    }
-  }
-  
-
-  // Sjekker innkommende data fra klienter
-  for (byte i=0; i < maxClients; i++) 
-  {
-    if (clients[i] && clients[i].available() > 0) 
-    {
-      // les bytes fra klient
-      byte buffer[80];
-      int count = clients[i].read(buffer, 80);
-      Serial.write(buffer, count);  //kun for testing
-      Serial.println();  //kun for testing
-
-      lagreTilSD(buffer, count);
-      //lesFraSD();
-      
-      //print bekreftelse
-      clients[i].println(F("OK"));
-    }
-  }
-
-  // Fjerner klienter som kobler av fra array
-  for (byte i=0; i < maxClients; i++) {
-    if (clients[i] && !clients[i].connected()) {
-      Serial.print(F("Kobler fra klient #"));
-      Serial.println(i);
-      clients[i].stop();
-    }
-  }
-  */
 }
 
 void printWiFiStatus() 
