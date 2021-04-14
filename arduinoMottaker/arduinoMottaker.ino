@@ -2,7 +2,6 @@
 #include <WiFiNINA.h>
 #include <SD.h>
 
-//#define maxClients 4  //ESP-01 håndterer ikke fler enn 4 klienter
 #define chipSelect 4  //pinne for kommunikasjon med SD-kort
 #define fileName "datalog.txt"
 #define errorSD "Feil: Kan ikke åpne datalog.txt fra SD-kort"
@@ -22,47 +21,42 @@ void setup()
   if (WiFi.status() == WL_NO_SHIELD) 
   {
     Serial.println(F("Feil: Finner ikke WiFi-modul"));
-    while (true); // don't continue
+    while (true); //Ikke fortsett
   }
 
   //Initialiserer SD-kort og sjekker for feil
   if(!SD.begin(chipSelect))
   {
     Serial.println(F("Feil: Finner ikke SD-kort"));
-    while (true); // don't continue
+    while (true); //Ikke fortsett
   }
   
   // Starter aksesspunkt
-  Serial.print("Creating access point named: ");
+  Serial.print(F("Oppretter aksesspunkt med SSID: "));
   Serial.println(ssid);
 
   status = WiFi.beginAP(ssid, pass);
-  if (status != WL_AP_LISTENING) 
+  if (status != WL_AP_LISTENING)
   {
-    Serial.println("Creating access point failed");
-    // don't continue
-    while (true);
+    Serial.println(F("Feil: Kunne ikke opprette aksesspunkt"));
+    while (true);  //Ikke fortsett
   }
-
-  // wait 10 seconds for connection:
-  delay(10000);
-
-  // starter server
+  
+  //starter server
   server.begin();
-  Serial.println(F("Server etablert"));
+  Serial.println(F("Server opprettet"));
 
-  // print status
+  //print status
   printWiFiStatus();
 }
 
 void loop() 
 {
-  // Leter etter nye klienter og legger dem til et klientarray
   WiFiClient client = server.available();
 
   if (client)
   {
-    Serial.println(F("Ny klient"));
+    //Serial.println(F("Ny klient"));
     while (client.connected())
     {
       if (client.available())
@@ -76,9 +70,9 @@ void loop()
         lesFraSD();
       }
     }
-    // close the connection:
+    //lukker koblingen:
     client.stop();
-    Serial.println("client disconnected");
+    Serial.println("Klient frakoblet");
   }
 
   /*
