@@ -14,7 +14,7 @@ SoftwareSerial Serial1(6, 7); //TXD, RXD
 #define interruptPinRTC 2
 #define interruptPinRainGauge 3
 #define chipSelect 10
-#define server "192.168.1.78"
+#define server "192.168.4.1"
 #define fileName "datalog.txt"
 #define errorSD "Feil: Kan ikke åpne datalog.txt fra SD-kort"
 
