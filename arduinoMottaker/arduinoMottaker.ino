@@ -16,7 +16,7 @@ WiFiServer server(2323);
 
 void setup() 
 {
-  Serial.begin(115200);   // initialiserer serial for debugging
+  Serial.begin(2000000);   // initialiserer serial for debugging
 
   // Tester kommunikasjon med WiFi-modul
   if (WiFi.status() == WL_NO_SHIELD) 
@@ -67,19 +67,18 @@ void loop()
     {
       if (client.available())
       {
-        byte buffer[80];
-        int count = client.read(buffer, 80);
-        Serial.write(buffer, count);  //kun for testing
-        Serial.println();  //kun for testing
-  
+        byte buffer[160];
+        int count = client.read(buffer, 160);
         lagreTilSD(buffer, count);
-        lesFraSD();
+        
       }
     }
     // close the connection:
     client.stop();
     Serial.println("client disconnected");
   }
+  
+  //lesFraSD();
 
   /*
   if (newClient) 
@@ -141,7 +140,7 @@ void printWiFiStatus()
   Serial.println(ip);
 }
 
-void lagreTilSD(byte buffer[80], int count)
+void lagreTilSD(byte buffer[160], int count)
 {
   File dataFil = SD.open(fileName, FILE_WRITE);
 
