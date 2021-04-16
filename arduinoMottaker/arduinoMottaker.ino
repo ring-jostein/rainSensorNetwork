@@ -52,83 +52,32 @@ void setup()
 void loop() 
 {
   WiFiClient client = server.available();
-  
-  while (client.connected())
-  {
-    while (client.available())
-    {
-      byte buffer[160];
-      int count = client.read(buffer, 160);
-      Serial.write(buffer, count);
-      lagreTilSD(buffer, count);
-    }
-  }
-  
-  /*
+
+  int noCharCount = 0;
   if (client)
   {
-    //Serial.println(F("Ny klient"));
     while (client.connected())
     {
-      if (client.available())
+      while (client.available())
       {
         byte buffer[160];
         int count = client.read(buffer, 160);
-        lagreTilSD(buffer, count);
         Serial.write(buffer, count);
+        //lagreTilSD(buffer, count);
+
+        noCharCount = 0;
       }
-    }
-    //lukker koblingen:
-    client.stop();
-    Serial.println("Klient frakoblet");
-  }
-  */
-  
-  /*
-  WiFiClient newClient = server.accept();
-  
-  if (newClient) 
-  {
-    for (byte i=0; i < maxClients; i++) 
-    {
-      if (!clients[i]) 
+      delay(10);
+      noCharCount++;
+
+      if (noCharCount > 1000)
       {
-        Serial.print(F("Ny klient #"));
-        Serial.println(i);
-        newClient.print(F("Hello, client number: "));
-        newClient.println(i);
-        clients[i] = newClient;
-        break;
+        Serial.println();
+        Serial.println("Timeout");
+        client.stop();
       }
     }
   }
-  
-  // Sjekker innkommende data fra klienter
-  for (byte i=0; i < maxClients; i++) 
-  {
-    if (clients[i] && clients[i].available() > 0) 
-    {
-      // les bytes fra klient
-      byte buffer[80];
-      int count = clients[i].read(buffer, 80);
-      Serial.write(buffer, count);  //kun for testing
-      Serial.println();  //kun for testing
-      lagreTilSD(buffer, count);
-      //lesFraSD();
-      
-      //print bekreftelse
-      clients[i].println(F("OK"));
-    }
-  }
-  // Fjerner klienter som kobler av fra array
-  for (byte i=0; i < maxClients; i++) {
-    if (clients[i] && !clients[i].connected()) {
-      Serial.print(F("Kobler fra klient #"));
-      Serial.println(i);
-      clients[i].stop();
-    }
-  }
-  */
 }
 
 void printWiFiStatus() 
@@ -137,7 +86,7 @@ void printWiFiStatus()
   Serial.print("SSID: ");
   Serial.println(WiFi.SSID());
 
-  //IP addresse for WiFi
+  //IP addresse for server
   IPAddress ip = WiFi.localIP();
   Serial.print("IP Address: ");
   Serial.println(ip);
