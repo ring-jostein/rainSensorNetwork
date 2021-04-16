@@ -14,7 +14,7 @@ SoftwareSerial Serial1(6, 7); //TXD, RXD
 #define interruptPinRTC 2
 #define interruptPinRainGauge 3
 #define chipSelect 10
-#define server "192.168.1.78"
+#define server "192.168.4.1"
 #define fileName "datalog.txt"
 #define errorSD "Feil: Kan ikke åpne datalog.txt fra SD-kort"
 
@@ -49,17 +49,6 @@ void setup()
     delay(1000);
   }
   Serial.println(F("Fullført"));
-
-  Serial.println(F("Kobler til server"));
-  if (client.connect(server, 2323))
-  {
-    Serial.println(F("Koblet til server"));
-  }
-  else
-  {
-    Serial.println(F("Feil: Kan ikke koble til server"));
-    while (true);
-  }
 
   //Initialiserer SD-kort og sjekker for feil
   if(!SD.begin(chipSelect)) 
@@ -147,14 +136,18 @@ void sendData()
   {
     Serial.println(FreeRam());
     File dataFil = SD.open(fileName);
-    if(dataFil)
+    if(client.connect(server, 2323))
     {
-      while(dataFil.available())
+      if (dataFil)
       {
-        client.write(dataFil.read());
+        while(dataFil.available())
+        {
+          client.write(dataFil.read());
+        }
+        dataFil.close();
+        SD.remove(fileName);
+        client.stop();
       }
-      dataFil.close();
-      SD.remove(fileName);
     }
     else Serial.println(F(errorSD));
   }  
