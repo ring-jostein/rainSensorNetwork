@@ -1,6 +1,7 @@
 #include <SPI.h>
 #include <WiFiNINA.h>
 #include <SD.h>
+#include <Ethernet.h>
 
 #define chipSelect 4  //pinne 4 for kommunikasjon med SD-kort for MKR, 10 for Uno
 #define fileName "datalog.txt"
@@ -10,12 +11,34 @@
 
 int status = WL_IDLE_STATUS;
 WiFiServer server(2323);
-//WiFiClient clients[4];
+EthernetClient ethClient;
+
+// Enter a MAC address and IP address for your controller below.
+// The IP address will be dependent on your local network.
+// gateway and subnet are optional:
+byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
+IPAddress ip(192, 168, 1, 177);
+IPAddress myDns(192, 168, 1, 1);
+IPAddress gateway(192, 168, 1, 1);
+IPAddress subnet(255, 255, 255, 0);
 
 void setup() 
 {
   Serial.begin(2000000);   // initialiserer serial for debugging
 
+  // Initialiserer Ethernet modul
+  Ethernet.begin(mac, ip, myDns, gateway, subnet);
+
+  //  Tester kommunikasjon med Ethernet Modul
+  if (Ethernet.hardwareStatus() == EthernetNoHardware) {
+    Serial.println(F("Feil: Finner ikke Ethernet-modul"));
+    while (true);  //Ikke fortsett
+  }
+  if (Ethernet.linkStatus() == LinkOFF) 
+  {
+    Serial.println(F("Ethernetkabel er ikke tilkoblet"));
+  }
+  
   // Tester kommunikasjon med WiFi-modul
   if (WiFi.status() == WL_NO_SHIELD) 
   {
