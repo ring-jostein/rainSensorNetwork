@@ -5,7 +5,7 @@
 #include <TimeLib.h>
 #include <avr/sleep.h>
 
-// Emulate Serial1 on pins 6/7 if not present
+// Emulerer Serial1 på pinner 6/7 hvis ikke tilstede
 #ifndef HAVE_HWSERIAL1
 #include "SoftwareSerial.h"
 SoftwareSerial Serial1(6, 7); //TXD, RXD
@@ -14,9 +14,9 @@ SoftwareSerial Serial1(6, 7); //TXD, RXD
 #define interruptPinRTC 2
 #define interruptPinRainGauge 3
 #define chipSelect 10
-#define server "192.168.4.1"
-#define fileName "datalog.txt"
-#define errorSD "Feil: Kan ikke åpne datalog.txt fra SD-kort"
+#define server "192.168.4.1"  //Endres til korrekt IP for mottaker
+#define fileName "datalog.txt"  //Filnavn som data blir lagret til
+#define errorSD "Feil: Kan ikke åpne datalog.txt fra SD-kort"  //Definert her ettersom feilmeldingen brukes flere steder i koden
 
 tmElements_t tm;
 time_t start;
@@ -28,20 +28,21 @@ void setup()
   pinMode(interruptPinRTC, INPUT_PULLUP);
   pinMode(interruptPinRainGauge, INPUT_PULLUP);
   
-  // initialize serial for debugging
+  // Serial for debugging
   Serial.begin(2000000);
-  // initialize serial for ESP module
+  // Serial for ESP modul
   Serial1.begin(9600);
-  // initialize ESP module
+  // Initialiser WiFi modul
   WiFi.init(&Serial1);
-  
+
+  //  Bekrefter kommunikasjon med WiFi-modul
   if (WiFi.status() == WL_NO_MODULE) 
   {
-    // don't continue
     Serial.println(F("Feil: Ingen tilkobling til WiFi-modul"));
-    while (true);
+    while (true);  // Ikke fortsett
   }
-  
+
+  //  Kobler opp til mottakers aksesspunkt. SSID og passord allerede konfigurert på WiFi-modul
   Serial.print(F("Kobler opp til AP"));
   while (WiFi.status() != WL_CONNECTED) 
   {
@@ -50,18 +51,18 @@ void setup()
   }
   Serial.println(F("Fullført"));
 
-  //Initialiserer SD-kort og sjekker for feil
+  //  Initialiserer SD-kort og sjekker for feil
   if(!SD.begin(chipSelect)) 
   {
-    // don't continue
     Serial.println(F("Feil: Finner ikke SD-kort"));
-    while (true);
+    while (true);  // Ikke fortsett
   }
   Serial.println(F("SD-kort initialisert"));
-
-  start = RTC.get();
+ 
+  RTC.set(compileTime());  //  Stiller klokke til kompileringsdato og tidspunkt, kan kommenteres ut når klokken er stilt.
+  start = RTC.get();  //  Henter starttidspunkt fra klokken
   
-  //Blokk som setter alarmer til kjente verdier
+  //  Blokk som setter alarmer til kjente verdier
   RTC.setAlarm(ALM1_MATCH_DATE, 0, 0, 0, 1);
   RTC.setAlarm(ALM2_MATCH_DATE, 0, 0, 0, 1);
   RTC.alarm(ALARM_1);
@@ -70,7 +71,7 @@ void setup()
   RTC.alarmInterrupt(ALARM_2, false);
   RTC.squareWave(SQWAVE_NONE);
 
-  //setter alarm på RTC til å gå av hvert minutt og aktiverer pin for interrupt-signal fra RTC
+  //  setter alarm på RTC til å gå av hvert minutt og aktiverer pin for interrupt-signal fra RTC
   RTC.setAlarm(ALM2_EVERY_MINUTE, 0, 0, 0, 0);  //gjøres om til hvert 30. minutt ved reell bruk
   RTC.alarmInterrupt(ALARM_2, true);
 }
@@ -79,14 +80,14 @@ void loop()
 {
   sleepMode();
   dataLogger(RTC.checkAlarm(ALARM_2));
-  lesFraSD();  //kun for testing
+  lesFraSD();  //kun for testing, verifiserer at data blir skrevet til SD-kort
   sendData();
 }
 
 //setter Arduino i sleepmode og aktiverer interrupt-pinner som vekker den
 void sleepMode()
 {
-  Serial.println(F("Aktiverer sleep mode"));  //kun for testing
+  Serial.println(F("Aktiverer sleep mode"));
   sleep_enable();
   attachInterrupt(digitalPinToInterrupt(interruptPinRTC), wakeUpAlarm, FALLING);
   attachInterrupt(digitalPinToInterrupt(interruptPinRainGauge), wakeUpRain, FALLING);
@@ -94,7 +95,7 @@ void sleepMode()
   sleep_cpu();
 }
 
-//funksjon for å konstruere nødvendig data i en String og lagre disse til SD-kort
+//  funksjon for å konstruere streng av data og lagre disse til SD-kort
 void dataLogger(bool alarmCheck)
 {
   char dataString[40];
@@ -102,10 +103,11 @@ void dataLogger(bool alarmCheck)
   char regn;
   int celcius = RTC.temperature() / 4.0;
 
+  // Sjekker om alarm vekket systemet
   if (alarmCheck)
   {
     regn = '0';
-    RTC.clearAlarm(ALARM_2);
+    RTC.clearAlarm(ALARM_2);  // Resett alarm
   }
   else regn = '1';
 
@@ -116,43 +118,44 @@ void dataLogger(bool alarmCheck)
   lagreTilSD(dataString);
 }
 
+//  Funksjon for å lagre data til SD-kort
 void lagreTilSD(char dataString[])
 {
-  Serial.println(FreeRam());
   File dataFil = SD.open(fileName, FILE_WRITE);
 
-  if(dataFil)
+  if(dataFil) // Sjekker om SD-kort er tilgjengelig
   {
-    dataFil.println(dataString);
-    dataFil.close();
+    dataFil.println(dataString);  // Skriver data til SD-kort
+    dataFil.close();  // Lukk fil
   }
   else Serial.println(F(errorSD));
 }
 
+//Funksjon for å sende data til mottaker
 void sendData()
 {
-  bool skalJegSende = timer();
+  bool skalJegSende = timer();  //Sjekker om det har gått tilstrekkelig tid for å sende
   if(skalJegSende)
   {
-    Serial.println(FreeRam());
     File dataFil = SD.open(fileName);
-    if(client.connect(server, 2323))
+    if(client.connect(server, 2323))  //  Kobler til server
     {
-      if (dataFil)
+      if (dataFil)  // Sjekker om SD-kort er tilgjengelig
       {
-        while(dataFil.available())
+        while(dataFil.available())  // Går så lenge det er data på SD-kortet
         {
-          client.write(dataFil.read());
+          client.write(dataFil.read());  // Sender data til server
         }
-        dataFil.close();
-        SD.remove(fileName);
-        client.stop();
+        dataFil.close();   //Lukk fil
+        SD.remove(fileName);  //Slett fil
+        client.stop();  //Lukk tilkobling til server
       }
     }
     else Serial.println(F(errorSD));
   }  
 }
 
+// Timer for å sjekke sendeintervallet
 bool timer()
 {
   bool check = false;
@@ -193,4 +196,29 @@ void lesFraSD()
     dataFil.close();
   }
   else Serial.println(F(errorSD));
+}
+
+//  Henter ut kompileringsdato og tid. Gjør om char strings fra DATE og TIME til heltallsverdier som kan gies til tm.
+time_t compileTime()
+{
+  const time_t FUDGE(10);  //definerer tiden det tar å kompilere koden
+  const char *compDate = __DATE__, *compTime = __TIME__, *months = "JanFebMarAprMayJunJulAugSepOctNovDec";
+  char compMon[4], *m;
+  
+  strncpy(compMon, compDate, 3); //kopierer de tre første karakterene fra compDate inn i compMon (måned i trebokstavsforkortelse)
+  compMon[3] = '\0';
+  m = strstr(months, compMon);  //substring fra punktet stringen compMon finnes i months
+  
+  //finner heltallet for punktet m starter i months. Ved å dele på tre vil hver måned representeres som et heltall fra 0-11. +1 for å få verdier fra 1-12.
+  tm.Month = ((m - months) / 3 + 1);  
+  
+  //konverter substring fra definert punkt til et heltall til neste "whitespace".
+  tm.Day = atoi(compDate + 4);
+  tm.Year = atoi(compDate + 7) - 1970;  //trekker fra 1970 fordi år på RTC er antall år etter 1970. Eks. 2021-1970 = 51
+  tm.Hour = atoi(compTime);
+  tm.Minute = atoi(compTime + 3);
+  tm.Second = atoi(compTime + 6);
+  
+  time_t t = makeTime(tm);  //tid t er alle elementene tm
+  return t + FUDGE;  //legger til fudge for å kompensere for tiden det tar å kompilere
 }
