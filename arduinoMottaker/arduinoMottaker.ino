@@ -4,10 +4,11 @@
 #include <Ethernet.h>
 #include "secrets.h"
 
-#define chipSelect 4  // pinne 4 for kommunikasjon med SD-kort for MKR, 10 for Uno
+#define chipSelect 4  //pinne 4 for kommunikasjon med SD-kort for MKR, 10 for Uno
 #define fileName "datalog.txt"  // Filnavn for data på SD-kort
-#define errorSD "Feil: Kan ikke åpne datalog.txt fra SD-kort"  // Felles feilmelding flere steder i koden
+#define errorSD "Feil: Kan ikke åpne datalog.txt fra SD-kort"  //Felles feilmelding flere steder i koden
 
+//SSID og passord for WiFi i C++ header
 const char ssid[] = SECRET_SSID;
 const char pass[] = SECRET_PASS;
 
@@ -15,21 +16,21 @@ int status = WL_IDLE_STATUS;
 WiFiServer server(2323);
 EthernetClient ethClient;
 
-// Sett MAC- og IP-adresse for ethernetkontroller under. Gateway og subnet er valgfri
+//Sett MAC- og IP-adresse for ethernetkontroller under. Gateway og subnet er valgfri
 byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
-IPAddress ip(192, 168, 1, 177);
+IPAddress ip(192, 168, 4, 177);
 IPAddress myDns(192, 168, 1, 1);
 IPAddress gateway(192, 168, 1, 1);
 IPAddress subnet(255, 255, 255, 0);
 
 void setup() 
 {
-  Serial.begin(2000000);   // initialiserer serial for debugging
+  Serial.begin(2000000);   //initialiserer serial for debugging
 
-  // Initialiserer Ethernet modul
+  //Initialiserer Ethernet modul
   Ethernet.begin(mac, ip, myDns, gateway, subnet);
 
-  //  Tester kommunikasjon med Ethernet Modul
+  //Tester kommunikasjon med Ethernet Modul
   if (Ethernet.hardwareStatus() == EthernetNoHardware) 
   {
     Serial.println(F("Feil: Finner ikke Ethernet-modul"));
@@ -41,7 +42,7 @@ void setup()
     while (true);  //Ikke fortsett
   }
   
-  // Tester kommunikasjon med WiFi-modul
+  //Tester kommunikasjon med WiFi-modul
   if (WiFi.status() == WL_NO_SHIELD) 
   {
     Serial.println(F("Feil: Finner ikke WiFi-modul"));
@@ -55,7 +56,7 @@ void setup()
     while (true); //Ikke fortsett
   }
   
-  // Starter aksesspunkt
+  //Starter aksesspunkt
   Serial.print(F("Oppretter aksesspunkt med SSID: "));
   Serial.println(ssid);
 
@@ -76,7 +77,7 @@ void setup()
 
 void loop() 
 {
-  WiFiClient client = server.available();  // Ny klient basert på innkommende data
+  WiFiClient client = server.available();  //Ny klient basert på innkommende data
 
   int noCharCount = 0; //Teller runder koden går uten innkommende data
   if (client)
@@ -90,11 +91,11 @@ void loop()
         Serial.write(buffer, count); // Echo data ut på Serial
         lagreTilSD(buffer, count);  // Lagrer data til SD-kort
 
-        noCharCount = 0; // Resetter teller for runder uten innkommende data
+        noCharCount = 0; //Resetter teller for runder uten innkommende data
       }
       noCharCount++;
 
-      // Timeout-funksjon i tilfelle klient ikke kobler fra server
+      //Timeout-funksjon i tilfelle klient ikke kobler fra server korrekt
       if (noCharCount > 1000)
       {
         Serial.println();
@@ -107,7 +108,7 @@ void loop()
 
 void printWiFiStatus() 
 {
-  // Print SSID for aksesspunkt
+  //Print SSID for aksesspunkt
   Serial.print("SSID: ");
   Serial.println(WiFi.SSID());
 
@@ -125,23 +126,6 @@ void lagreTilSD(byte buffer[160], int count)
   if(dataFil)
   {
     dataFil.write(buffer, count);
-    dataFil.close();
-  }
-  else Serial.println(F(errorSD));
-}
-
-// Testfunksjon for å verifisere at data blir skrevet til SD-kort
-void lesFraSD()
-{
-  File dataFil = SD.open(fileName);
-
-  if(dataFil)
-  {
-    Serial.println("datalog.txt: ");
-    while(dataFil.available())
-    {
-      Serial.write(dataFil.read());
-    }
     dataFil.close();
   }
   else Serial.println(F(errorSD));
