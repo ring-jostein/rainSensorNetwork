@@ -14,7 +14,7 @@ SoftwareSerial Serial1(6, 7); //TXD, RXD
 #define interruptPinRTC 2
 #define interruptPinRainGauge 3
 #define chipSelect 10
-#define server "192.168.4.1"  //Endres til korrekt IP for mottaker
+#define server "192.168.4.1"  //Endres til IP for mottaker
 #define fileName "datalog.txt"  //Filnavn som data blir lagret til
 #define errorSD "Feil: Kan ikke åpne datalog.txt fra SD-kort"  //Definert her ettersom feilmeldingen brukes flere steder i koden
 
@@ -28,21 +28,21 @@ void setup()
   pinMode(interruptPinRTC, INPUT_PULLUP);
   pinMode(interruptPinRainGauge, INPUT_PULLUP);
   
-  // Serial for debugging
+  //Serial for debugging
   Serial.begin(2000000);
-  // Serial for ESP modul
+  //Serial for ESP modul
   Serial1.begin(9600);
-  // Initialiser WiFi modul
+  //Initialiser WiFi modul
   WiFi.init(&Serial1);
 
-  //  Bekrefter kommunikasjon med WiFi-modul
+  //Bekrefter kommunikasjon med WiFi-modul
   if (WiFi.status() == WL_NO_MODULE) 
   {
     Serial.println(F("Feil: Ingen tilkobling til WiFi-modul"));
-    while (true);  // Ikke fortsett
+    while (true);  //Ikke fortsett
   }
 
-  //  Kobler opp til mottakers aksesspunkt. SSID og passord allerede konfigurert på WiFi-modul
+  //Kobler opp til mottakers aksesspunkt. SSID og passord allerede konfigurert på WiFi-modul
   Serial.print(F("Kobler opp til AP"));
   while (WiFi.status() != WL_CONNECTED) 
   {
@@ -51,18 +51,18 @@ void setup()
   }
   Serial.println(F("Fullført"));
 
-  //  Initialiserer SD-kort og sjekker for feil
+  //Initialiserer SD-kort og sjekker for feil
   if(!SD.begin(chipSelect)) 
   {
     Serial.println(F("Feil: Finner ikke SD-kort"));
-    while (true);  // Ikke fortsett
+    while (true);  //Ikke fortsett
   }
   Serial.println(F("SD-kort initialisert"));
  
-  RTC.set(compileTime());  //  Stiller klokke til kompileringsdato og tidspunkt, kan kommenteres ut når klokken er stilt.
-  start = RTC.get();  //  Henter starttidspunkt fra klokken
+  RTC.set(compileTime());  //Stiller klokke til kompileringsdato og tidspunkt, kan kommenteres ut når klokken er stilt.
+  start = RTC.get();  //Henter starttidspunkt fra klokken
   
-  //  Blokk som setter alarmer til kjente verdier
+  //Blokk som setter alarmer til kjente verdier
   RTC.setAlarm(ALM1_MATCH_DATE, 0, 0, 0, 1);
   RTC.setAlarm(ALM2_MATCH_DATE, 0, 0, 0, 1);
   RTC.alarm(ALARM_1);
@@ -71,7 +71,7 @@ void setup()
   RTC.alarmInterrupt(ALARM_2, false);
   RTC.squareWave(SQWAVE_NONE);
 
-  //  setter alarm på RTC til å gå av hvert minutt og aktiverer pin for interrupt-signal fra RTC
+  //setter alarm på RTC til å gå av hvert minutt og aktiverer pin for interrupt-signal fra RTC
   RTC.setAlarm(ALM2_EVERY_MINUTE, 0, 0, 0, 0);  //gjøres om til hvert 30. minutt ved reell bruk
   RTC.alarmInterrupt(ALARM_2, true);
 }
@@ -80,7 +80,6 @@ void loop()
 {
   sleepMode();
   dataLogger(RTC.checkAlarm(ALARM_2));
-  lesFraSD();  //kun for testing, verifiserer at data blir skrevet til SD-kort
   sendData();
 }
 
@@ -175,27 +174,10 @@ void wakeUpAlarm()  //ISR for RTC
   sleep_disable();
 }
 
-void wakeUpRain()  //ISR for nedbørsmåler
+void wakeUpRain()  //ISR for nedbørmåler
 {
   detachInterrupt(digitalPinToInterrupt(interruptPinRainGauge));
   sleep_disable();
-}
-
-//testfunksjon for å se at det er data på SD-kortet
-void lesFraSD()
-{
-  File dataFil = SD.open(fileName);
-
-  if(dataFil)
-  {
-    Serial.println("datalog.txt: ");
-    while(dataFil.available())
-    {
-      Serial.write(dataFil.read());
-    }
-    dataFil.close();
-  }
-  else Serial.println(F(errorSD));
 }
 
 //  Henter ut kompileringsdato og tid. Gjør om char strings fra DATE og TIME til heltallsverdier som kan gies til tm.
